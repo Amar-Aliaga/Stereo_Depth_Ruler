@@ -2,9 +2,12 @@
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/ximgproc.hpp>
+#include "stereo_rectifier.hpp"
 
 class StereoDisparity {
 private:
+    StereoRectifier rect;
+
     cv::Ptr<cv::StereoSGBM> matcher;
     cv::Mat Q;
 

@@ -4,6 +4,7 @@
 #include "stereo_calibrator.hpp"
 #include "stereo_disparity.hpp"
 #include "stereo_rectifier.hpp"
+#include <sl/Camera.hpp>
 #include <iostream>
 #include <vector>
 #include <string>
@@ -150,3 +151,90 @@ void image_desparity(const std::string &img_file) {
     cv::imshow("Original Left", disp);
     cv::waitKey(0);
 }
+
+void zed_footage() {
+    sl::Camera zed;
+
+    sl::InitParameters init_params;
+    init_params.camera_resolution = sl::RESOLUTION::HD720;
+    init_params.camera_fps = 30;
+    init_params.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Y_UP;
+    init_params.coordinate_units = sl::UNIT::METER;
+
+    sl::ERROR_CODE err = zed.open(init_params);
+    if(err != sl::ERROR_CODE::SUCCESS) {
+        std::cerr << "Error" << std::endl;
+        return;
+    }
+
+    sl::RuntimeParameters runtime_params;
+
+    sl::Mat zed_right_image, zed_left_image;
+    cv::Mat cv_right_image, cv_left_image;
+
+    while(true) {
+        if(zed.grab(runtime_params) == sl::ERROR_CODE::SUCCESS) {
+            zed.retrieveImage(zed_left_image, sl::VIEW::LEFT);
+            zed.retrieveImage(zed_right_image, sl::VIEW::RIGHT);
+
+            cv_left_image  = cv::Mat((int)zed_left_image.getHeight(),  (int)zed_left_image.getWidth(),  CV_8UC4, zed_left_image.getPtr<sl::uchar1>(sl::MEM::CPU));
+            cv_right_image = cv::Mat((int)zed_right_image.getHeight(), (int)zed_right_image.getWidth(), CV_8UC4, zed_right_image.getPtr<sl::uchar1>(sl::MEM::CPU));
+
+            cv::imshow("ZED Left Camera", cv_left_image);
+            cv::imshow("ZED Right Camera", cv_right_image);
+
+            char key = cv::waitKey(10);
+            if (key == 27) { 
+                break;
+            }
+        }
+    }
+
+}
+
+
+void live_disparity_map() {
+        StereoRectifier rectifier;
+        rectifier.loadCalibration("config/stereo.yaml");
+
+        StereoDisparity disparity_computer(rectifier.getQ());
+
+        cv::VideoCapture cap("/home/amar-aliaga/Desktop/my_video/output.mp4");
+        if (!cap.isOpened()) {
+            std::cerr << "Error: Could not open video file." << std::endl;
+            return;
+        }
+
+        while (true) {
+            cv::Mat frame;
+            cap >> frame;
+            if (frame.empty()) {
+                std::cout << "End of video." << std::endl;
+                break;
+            }
+
+
+            cv::Mat left_raw = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
+            cv::Mat right_raw = frame(cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows));
+
+            
+            cv::Mat left_rect, right_rect;
+            rectifier.rectify(left_raw, right_raw, left_rect, right_rect);
+
+            
+            cv::Mat disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
+
+            cv::Mat disp_display;
+            cv::normalize(disp_float, disp_display, 0, 255, cv::NORM_MINMAX, CV_8U);
+            //cv::applyColorMap(disp_display, disp_display, cv::COLORMAP_JET); // Make it pretty
+
+            
+            cv::imshow("Rectified Left", left_rect);
+            cv::imshow("Rectified Right", left_rect);
+            cv::imshow("Disparity Map", disp_display);
+
+            if (cv::waitKey(1) == 27) {
+                break;
+            }
+        }
+    }

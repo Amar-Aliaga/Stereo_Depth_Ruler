@@ -11,6 +11,7 @@ StereoDisparity::StereoDisparity(const cv::Mat &Q_matrix) : Q(Q_matrix) {
     //wls_filter->setLRCrossCheckingValue(24);
 }
 
+
 cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& right) {
     cv::Mat leftGray, rightGray;
 
@@ -26,7 +27,7 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
     right_matcher->compute(right_small, left_small, disp_right);
 
     cv::Mat filtered_disp;
-    wls_filter->filter(disp_left, left, filtered_disp, disp_right);
+    wls_filter->filter(disp_left, left_small, filtered_disp, disp_right);
 
     cv::Mat filtered_disp_float;
     filtered_disp.convertTo(filtered_disp_float, CV_32F, 1.0 / 16.0);
@@ -43,82 +44,11 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
     if (maxVal > minVal && maxVal > 0) {
         cv::Mat temp;
         filtered_disp_float.convertTo(temp, CV_8U, 255.0 / maxVal, 0);
-        temp.copyTo(filter_disp_norm, valid_mask);  // Only copy valid pixels
+        temp.copyTo(filter_disp_norm, valid_mask);  
     }
 
-    return filter_disp_norm;
+    return filtered_disp_float;
 }
-
-
-// }cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& right) {
-//     cv::Mat leftGray, rightGray;
-//     if (left.channels() > 1)
-//         cv::cvtColor(left, leftGray, cv::COLOR_BGR2GRAY);
-//     else
-//         leftGray = left;
-
-//     if (right.channels() > 1)
-//         cv::cvtColor(right, rightGray, cv::COLOR_BGR2GRAY);
-//     else
-//         rightGray = right;
-
-//     // Create right matcher and WLS filter
-//     cv::Ptr<cv::StereoMatcher> right_matcher = cv::ximgproc::createRightMatcher(matcher);
-//     cv::Ptr<cv::ximgproc::DisparityWLSFilter> wls_filter = cv::ximgproc::createDisparityWLSFilter(matcher);
-
-//     cv::Mat disp_left, disp_right;
-//     matcher->compute(leftGray, rightGray, disp_left);
-//     right_matcher->compute(rightGray, leftGray, disp_right);
-
-//     wls_filter->setLambda(8000.0);
-//     wls_filter->setSigmaColor(1.5);
-
-//     cv::Mat filtered_disp;
-//     wls_filter->filter(disp_left, leftGray, filtered_disp, disp_right);
-
-//     // Convert to float and normalize for display
-//     cv::Mat filtered_disp_float, filtered_disp_norm;
-//     filtered_disp.convertTo(filtered_disp_float, CV_32F, 1.0 / 16.0);  // Convert from fixed-point
-//     cv::normalize(filtered_disp_float, filtered_disp_norm, 0, 255, cv::NORM_MINMAX, CV_8U); // Normalize to 8-bit
-
-//     return filtered_disp_norm;  // Return normalized displayable map
-// }
-
-
-// cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& right) {
-//     cv::Mat leftGray, rightGray;
-//     if (left.channels() > 1)
-//         cv::cvtColor(left, leftGray, cv::COLOR_BGR2GRAY);
-//     else
-//         leftGray = left;
-
-//     if (right.channels() > 1)
-//         cv::cvtColor(right, rightGray, cv::COLOR_BGR2GRAY);
-//     else
-//         rightGray = right;
-
-//     // Create right matcher and WLS filter
-//     cv::Ptr<cv::StereoMatcher> right_matcher = cv::ximgproc::createRightMatcher(matcher);
-//     cv::Ptr<cv::ximgproc::DisparityWLSFilter> wls_filter = cv::ximgproc::createDisparityWLSFilter(matcher);
-
-//     cv::Mat disp_left, disp_right;
-//     matcher->compute(leftGray, rightGray, disp_left);
-//     right_matcher->compute(rightGray, leftGray, disp_right);
-
-//     wls_filter->setLambda(8000.0);
-//     wls_filter->setSigmaColor(1.5);
-//wls_filter->setLRCrossCheckingValue(24);
-//     cv::Mat filtered_disp;
-//     wls_filter->filter(disp_left, leftGray, filtered_disp, disp_right);
-
-//     // Convert to float and normalize for display
-//     cv::Mat filtered_disp_float, filtered_disp_norm;
-//     filtered_disp.convertTo(filtered_disp_float, CV_32F, 1.0 / 16.0);  // Convert from fixed-point
-//     cv::normalize(filtered_disp_float, filtered_disp_norm, 0, 255, cv::NORM_MINMAX, CV_8U); // Normalize to 8-bit
-
-//     return filtered_disp_norm;  // Return normalized displayable map
-// }
-
 
 
 cv::Mat StereoDisparity::computeDepth(const cv::Mat& disparity) {
@@ -126,6 +56,7 @@ cv::Mat StereoDisparity::computeDepth(const cv::Mat& disparity) {
     cv::reprojectImageTo3D(disparity, depth, Q);
     return depth;
 }
+
 
 const cv::Ptr<cv::StereoSGBM> StereoDisparity::get_matcher() const {
     return matcher;
