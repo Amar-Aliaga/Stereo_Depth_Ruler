@@ -1,21 +1,17 @@
 #pragma once
 
+#include "stereo_configuration.hpp"
 #include <opencv2/opencv.hpp>
 #include <string>
 
 class StereoCalibrator {
 private:
     const cv::Size boardSize {8, 6};
-    static constexpr float squareSize {20.0f};
+    static constexpr float squareSize {19.0f};
     static constexpr const char *left_frames_dir  {"/home/amar-aliaga/Desktop/left_frames/" };
     static constexpr const char *right_frames_dir {"/home/amar-aliaga/Desktop/right_frames/"};
-    static constexpr const char *outputFile {"config/stereo.yaml"};
-
-    cv::Mat cameraMatrixLeft, distCoeffsLeft;
-    cv::Mat cameraMatrixRight, distCoeffsRight;
-    cv::Mat R, T, E, F;
-    cv::Mat R1, R2, P1, P2, Q;
-    cv::Size imageSize;
+    
+    StereoConfiguration config;
 
 public:
     StereoCalibrator();

@@ -3,8 +3,19 @@ cmake_minimum_required(VERSION 3.16)
 find_package(OpenCV REQUIRED)
 find_package(ZED REQUIRED)
 
-file(GLOB SRC_FILES src/*.cpp)
-file(GLOB HEADER_FILES include/*.hpp)
+set(SRC_FILES
+    src/stereo_configuration.cpp
+    src/stereo_rectifier.cpp
+    src/stereo_disparity.cpp
+    src/stereo_calibrator.cpp
+)
+
+set(HEADER_FILES
+    include/stereo_configuration.hpp
+    include/stereo_rectifier.hpp
+    include/stereo_disparity.hpp
+    include/stereo_calibrator.hpp
+)
 
 add_library(stereo_vision ${SRC_FILES} ${HEADER_FILES})
 

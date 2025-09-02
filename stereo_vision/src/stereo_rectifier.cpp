@@ -3,50 +3,14 @@
 #include <iostream>
 #include <string>
 
-StereoRectifier::StereoRectifier() = default;
+StereoRectifier::StereoRectifier(const StereoConfiguration &config) : config(config) {
+    cv::initUndistortRectifyMap(config.cameraMatrixLeft, config.distCoeffsLeft, config.R1, 
+                                config.P1, config.imageSize, CV_16SC2, mapL1, mapL2);
 
+    cv::initUndistortRectifyMap(config.cameraMatrixRight, config.distCoeffsRight, config.R2, 
+                                config.P2, config.imageSize, CV_16SC2, mapR1, mapR2);
 
-bool StereoRectifier::loadCalibration(const std::string& filename) {
-    cv::FileStorage fs(filename, cv::FileStorage::READ);
-
-    if(!fs.isOpened()) {
-        std::cerr << "Failed to open calibration file: " << filename << std::endl;
-        return false;
-    }
-
-    int calibWidth{0}, calibHeight{0};
-    fs["imageWidth"] >> calibWidth;
-    fs["imageHeight"] >> calibHeight;
-
-    if (calibWidth > 0 && calibHeight > 0) {
-        imageSize = cv::Size(calibWidth, calibHeight);
-    } else {
-        std::cerr << "Error: Invalid image size in YAML (width=" << calibWidth << ", height=" << calibHeight << ")" << std::endl;
-        return false;
-    }
-
-    fs["cameraMatrixLeft"] >> cameraMatrixLeft;
-    fs["distCoeffsLeft"] >> distCoeffsLeft;
-    fs["cameraMatrixRight"] >> cameraMatrixRight;
-    fs["distCoeffsRight"] >> distCoeffsRight;
-    fs["R1"] >> R1;
-    fs["R2"] >> R2;
-    fs["P1"] >> P1;
-    fs["P2"] >> P2;
-    fs["Q"] >> Q;
-
-    fs.release();
-
-    if (cameraMatrixLeft.empty() || cameraMatrixRight.empty() || R1.empty() || Q.empty()) {
-        std::cerr << "Error: Failed to load one or more matrices from YAML" << std::endl;
-        return false;
-    }
-
-    cv::initUndistortRectifyMap(cameraMatrixLeft, distCoeffsLeft, R1, P1, imageSize, CV_16SC2, mapL1, mapL2);
-    cv::initUndistortRectifyMap(cameraMatrixRight, distCoeffsRight, R2, P2, imageSize, CV_16SC2, mapR1, mapR2);
     std::cout << "Remapping tables created." << std::endl;
-
-    return true;
 }
 
 
@@ -57,10 +21,10 @@ void StereoRectifier::rectify(const cv::Mat &left_src, const cv::Mat &right_src,
     }
 
      cv::Mat leftResized, rightResized;
-    if (left_src.size() != imageSize || right_src.size() != imageSize) {
-    std::cerr << "Warning: Resizing input images to match calibration size (" << imageSize << ")." << std::endl;
-    cv::resize(left_src, leftResized, imageSize);
-    cv::resize(right_src, rightResized, imageSize);
+    if (left_src.size() != config.imageSize || right_src.size() != config.imageSize) {
+    std::cerr << "Warning: Resizing input images to match calibration size (" << config.imageSize << ")." << std::endl;
+    cv::resize(left_src, leftResized, config.imageSize);
+    cv::resize(right_src, rightResized, config.imageSize);
 } else {
     left_src.copyTo(leftResized);
     right_src.copyTo(rightResized);
@@ -84,10 +48,12 @@ void StereoRectifier::drawEpipolarLines(cv::Mat &rectifiedLeft, cv::Mat &rectifi
 
 
 bool StereoRectifier::run_rectification() {
-    if (!loadCalibration(outputFile)) {
-        std::cerr << "Failed to load calibration!" << std::endl;
-        return false;
-    }
+    const std::string &outputFile("config/stereo.yaml");
+
+    // if (!config.isValid(outputFile)) {
+    //     std::cerr << "Failed to load calibration!" << std::endl;
+    //     return false;
+    // }
 
     cv::VideoCapture cap("/home/amar-aliaga/Desktop/my_video/output.mp4");
     if(!cap.isOpened()) {
@@ -131,5 +97,5 @@ bool StereoRectifier::run_rectification() {
 }
 
 
-const cv::Size &StereoRectifier::getImageSize() const noexcept { return imageSize; }
-const cv::Mat  &StereoRectifier::getQ() const noexcept { return Q; }
+const cv::Size &StereoRectifier::getImageSize() const noexcept { return config.imageSize; }
+const cv::Mat  &StereoRectifier::getQ() const noexcept { return config.Q; }

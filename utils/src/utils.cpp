@@ -4,6 +4,7 @@
 #include "stereo_calibrator.hpp"
 #include "stereo_disparity.hpp"
 #include "stereo_rectifier.hpp"
+#include "stereo_configuration.hpp"
 #include <sl/Camera.hpp>
 #include <iostream>
 #include <vector>
@@ -126,9 +127,14 @@ void capture_frame(const std::string &output_file) {
 
 
 void image_desparity(const std::string &img_file) {
-    StereoRectifier rec;
+    StereoConfiguration config;
+    
+    if (!config.loadFromFile("config/stereo.yaml")) {
+        return;
+    }
+    StereoRectifier rec(config);
     cv::Mat left_img, right_img;
-    rec.loadCalibration("config/stereo.yaml");
+    //rec.loadCalibration("config/stereo.yaml");
     cv::Mat frame = cv::imread(img_file, cv::IMREAD_COLOR);
     cv::Mat left = frame(cv::Rect(0, 0, frame.cols/2, frame.rows));
     cv::Mat right = frame(cv::Rect(frame.cols/2, 0, frame.cols/2, frame.rows));
@@ -194,12 +200,18 @@ void zed_footage() {
 
 
 void live_disparity_map() {
-        StereoRectifier rectifier;
-        rectifier.loadCalibration("config/stereo.yaml");
+        StereoConfiguration config;
 
-        StereoDisparity disparity_computer(rectifier.getQ());
+        if (!config.loadFromFile("config/stereo.yaml")) {
+            return;
+        }
+        StereoRectifier rectifier(config);
 
-        cv::VideoCapture cap("/home/amar-aliaga/Desktop/my_video/output.mp4");
+        StereoDisparity disparity_computer(config.Q);
+
+        const std::string &s {"/home/amar-aliaga/Desktop/my_video/output.mp4"};
+
+        cv::VideoCapture cap(s);
         if (!cap.isOpened()) {
             std::cerr << "Error: Could not open video file." << std::endl;
             return;
@@ -224,14 +236,14 @@ void live_disparity_map() {
             
             cv::Mat disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
 
-            cv::Mat disp_display;
-            cv::normalize(disp_float, disp_display, 0, 255, cv::NORM_MINMAX, CV_8U);
+            //cv::Mat disp_display;
+            //cv::normalize(disp_float, disp_display, 0, 255, cv::NORM_MINMAX, CV_8U);
             //cv::applyColorMap(disp_display, disp_display, cv::COLORMAP_JET); // Make it pretty
 
             
             cv::imshow("Rectified Left", left_rect);
             cv::imshow("Rectified Right", left_rect);
-            cv::imshow("Disparity Map", disp_display);
+            cv::imshow("Disparity Map", disp_float);
 
             if (cv::waitKey(1) == 27) {
                 break;

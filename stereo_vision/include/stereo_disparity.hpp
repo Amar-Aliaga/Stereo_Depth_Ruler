@@ -6,8 +6,6 @@
 
 class StereoDisparity {
 private:
-    StereoRectifier rect;
-
     cv::Ptr<cv::StereoSGBM> matcher;
     cv::Mat Q;
 
