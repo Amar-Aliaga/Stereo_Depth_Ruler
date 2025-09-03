@@ -15,8 +15,8 @@ int main() {
     const std::string &outputFile {"config/stereo.yaml"};
 
     StereoCalibrator cal;
-    cal.calibrate();
-    cal.saveCalibration(outputFile);
+    cal.calibrate(outputFile);
+    // cal.saveCalibration(outputFile);
 
     StereoConfiguration config;
     if (!config.loadFromFile(outputFile)) {

@@ -3,12 +3,13 @@
 
 StereoDisparity::StereoDisparity(const cv::Mat &Q_matrix) : Q(Q_matrix) {
     matcher = cv::StereoSGBM::create(
-        0, 80, 5, 8*5*5, 32*5*5, 10, 63, 3, 100, 12, cv::StereoSGBM::MODE_SGBM_3WAY
+       // 0, 80, 5, 8*5*5, 32*5*5, 10, 63, 3, 100, 12, cv::StereoSGBM::MODE_SGBM_3WAY
+       0, 32, 3, 8*3*3, 32*3*3, 10, 100, 3, 100, 32, cv::StereoSGBM::MODE_SGBM_3WAY
     );
     right_matcher = cv::ximgproc::createRightMatcher(matcher);
     wls_filter = cv::ximgproc::createDisparityWLSFilter(matcher);
     wls_filter->setLambda(8500.0);
-    wls_filter->setSigmaColor(1.5);
+    wls_filter->setSigmaColor(1.1);
     //wls_filter->setLRCrossCheckingValue(24);
 }
 
@@ -29,26 +30,23 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
     cv::Mat filtered_disp;
     wls_filter->filter(disp_left, left_small, filtered_disp, disp_right);
 
-    // Convert to float for further processing
     cv::Mat filtered_disp_float;
     filtered_disp.convertTo(filtered_disp_float, CV_32F, 1.0 / 16.0);
 
-    // Optional: Median blur to reduce speckle noise
-    cv::medianBlur(filtered_disp_float, filtered_disp_float, 3);
+    //cv::medianBlur(filtered_disp_float, filtered_disp_float, 3);
 
-    // Fixed-range normalization
     const int numDisp = matcher->getNumDisparities();
     cv::Mat valid_mask = filtered_disp_float > 0;
     cv::Mat filtered_disp_float_masked = filtered_disp_float.clone();
     filtered_disp_float_masked.setTo(0, ~valid_mask);
 
-    // Normalize to [0, 1]
+
     cv::Mat norm01;
     filtered_disp_float_masked.convertTo(norm01, CV_32F, 1.0f / std::max(1, numDisp));
 
-    // Optional: Apply gamma correction for better visualization of far objects
+
     const bool apply_gamma = true;
-    const double gamma = 0.6; // lower gamma brightens distant (low disparity) regions
+    const double gamma = 0.6; 
     cv::Mat norm_gamma;
     if (apply_gamma) {
         cv::pow(norm01, gamma, norm_gamma);
@@ -56,11 +54,9 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
         norm_gamma = norm01;
     }
 
-    // Convert to 8-bit for display
     cv::Mat disp_vis;
     norm_gamma.convertTo(disp_vis, CV_8U, 255.0);
 
-    // Optional: Temporal smoothing (helps reduce flickering)
     static cv::Mat prev_disp_vis;
     const float alpha = 0.85f;
     if (!prev_disp_vis.empty()) {

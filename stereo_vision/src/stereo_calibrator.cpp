@@ -9,7 +9,7 @@
 
 StereoCalibrator::StereoCalibrator() = default;
 
-bool StereoCalibrator::calibrate() {
+bool StereoCalibrator::calibrate(const std::string &outputFile) {
     std::vector<std::vector<cv::Point2f>> imagePointsLeft, imagePointsRight;
     std::vector<std::vector<cv::Point3f>> objectPoints;
     
@@ -93,7 +93,7 @@ bool StereoCalibrator::calibrate() {
     std::vector<cv::Mat> rvecsLeft, tvecsLeft;
     std::vector<cv::Mat> rvecsRight, tvecsRight;
 
-    double rmsLeft = cv::calibrateCamera(objectPoints, imagePointsLeft, config.imageSize,
+    double rmsLeft  = cv::calibrateCamera(objectPoints, imagePointsLeft, config.imageSize,
         config.cameraMatrixLeft, config.distCoeffsLeft, rvecsLeft, tvecsLeft);
     double rmsRight = cv::calibrateCamera(objectPoints, imagePointsRight, config.imageSize,
         config.cameraMatrixRight, config.distCoeffsRight, rvecsRight, tvecsRight);
@@ -121,6 +121,9 @@ bool StereoCalibrator::calibrate() {
         config.imageSize, config.R, config.T, config.R1, config.R2, config.P1, config.P2, config.Q,
         cv::CALIB_ZERO_DISPARITY, 0, config.imageSize
     );
+
+    saveCalibration(outputFile);
+
     return true;
 }
 
@@ -174,7 +177,7 @@ bool StereoCalibrator::run_calibration() {
     std::cout << "Pattern: " << getBoardSize_Width() << "x" << getBoardSize_Height() << " inner corners" << std::endl;
     std::cout << "Square size: " << getSquareSize() << " mm" << std::endl;
 
-    if (calibrate()) {
+    if (calibrate(outputFile)) {
         std::cout << "Calibration successful!" << std::endl;
         
         saveCalibration(outputFile);

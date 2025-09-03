@@ -200,6 +200,8 @@ void zed_footage() {
 
 
 void live_disparity_map() {
+        const std::string &s {"/home/amar-aliaga/Desktop/my_video/output.mp4"};
+
         StereoConfiguration config;
 
         if (!config.loadFromFile("config/stereo.yaml")) {
@@ -208,8 +210,6 @@ void live_disparity_map() {
         StereoRectifier rectifier(config);
 
         StereoDisparity disparity_computer(config.Q);
-
-        const std::string &s {"/home/amar-aliaga/Desktop/my_video/output.mp4"};
 
         cv::VideoCapture cap(s);
         if (!cap.isOpened()) {
@@ -236,13 +236,31 @@ void live_disparity_map() {
             
             cv::Mat disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
 
+            cv::Mat depth_map = disparity_computer.computeDepth(disp_float);
+
+            cv::Mat depthZ;
+            if (depth_map.channels() == 3) {
+                cv::extractChannel(depth_map, depthZ, 2); 
+            } else {
+                depthZ = depth_map; 
+            }
+
+            double zmin = 0, zmax = 0;
+
+            cv::Mat z_valid = (depthZ > 0) & (depthZ < 10000) & (depthZ == depthZ);
+            cv::minMaxLoc(depthZ, &zmin, &zmax, nullptr, nullptr, z_valid);
+            cv::Mat depth_vis8u;
+            depthZ.convertTo(depth_vis8u, CV_8U, 255.0 / (zmax - zmin), -255.0 * zmin / (zmax - zmin));
+            cv::bitwise_not(depth_vis8u, depth_vis8u);
+            cv::applyColorMap(depth_vis8u, depth_vis8u, cv::COLORMAP_TURBO);
             //cv::Mat disp_display;
             //cv::normalize(disp_float, disp_display, 0, 255, cv::NORM_MINMAX, CV_8U);
             //cv::applyColorMap(disp_display, disp_display, cv::COLORMAP_JET); // Make it pretty
 
             
             cv::imshow("Rectified Left", left_rect);
-            cv::imshow("Rectified Right", left_rect);
+            cv::imshow("Rectified Right", right_rect);
+            cv::imshow("Depth Map", depth_vis8u);
             cv::imshow("Disparity Map", disp_float);
 
             if (cv::waitKey(1) == 27) {

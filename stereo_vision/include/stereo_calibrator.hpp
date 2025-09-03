@@ -15,7 +15,7 @@ private:
 
 public:
     StereoCalibrator();
-    bool calibrate();
+    bool calibrate(const std::string &outputFile);
     void saveCalibration(const std::string& filename);
     void printCalibrationResults();
     bool run_calibration();
