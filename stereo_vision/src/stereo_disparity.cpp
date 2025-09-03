@@ -1,4 +1,5 @@
 #include "stereo_disparity.hpp"
+#include <utility>
 
 StereoDisparity::StereoDisparity(const cv::Mat &Q_matrix) : Q(Q_matrix) {
     matcher = cv::StereoSGBM::create(
@@ -13,25 +14,18 @@ StereoDisparity::StereoDisparity(const cv::Mat &Q_matrix) : Q(Q_matrix) {
 
 
 cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& right) {
-    // Convert to grayscale
     cv::Mat leftGray, rightGray;
     cv::cvtColor(left,  leftGray,  cv::COLOR_BGR2GRAY);
     cv::cvtColor(right, rightGray, cv::COLOR_BGR2GRAY);
 
-    // Downscale for performance
     cv::Mat left_small, right_small;
     cv::resize(leftGray,  left_small,  cv::Size(), 0.5, 0.5, cv::INTER_AREA);
     cv::resize(rightGray, right_small, cv::Size(), 0.5, 0.5, cv::INTER_AREA);
 
-    // Compute raw disparities
     cv::Mat disp_left, disp_right;
     matcher->compute(left_small, right_small, disp_left);
     right_matcher->compute(right_small, left_small, disp_right);
 
-    // Type check
-    CV_Assert(disp_left.type() == CV_16S && disp_right.type() == CV_16S);
-
-    // Apply WLS filter
     cv::Mat filtered_disp;
     wls_filter->filter(disp_left, left_small, filtered_disp, disp_right);
 
@@ -74,47 +68,8 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
     }
     prev_disp_vis = disp_vis.clone();
 
-    return disp_vis;
-}
-
-
-// cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& right) {
-//     cv::Mat leftGray, rightGray;
-
-//     cv::cvtColor(left,  leftGray,  cv::COLOR_BGR2GRAY);
-//     cv::cvtColor(right, rightGray, cv::COLOR_BGR2GRAY);
-
-//     cv::Mat left_small, right_small;
-//     cv::resize(leftGray, left_small, cv::Size(), 0.5, 0.5, cv::INTER_LINEAR_EXACT);
-//     cv::resize(rightGray, right_small, cv::Size(), 0.5, 0.5, cv::INTER_LINEAR_EXACT);
-
-//     cv::Mat disp_left, disp_right;
-//     matcher->compute(left_small, right_small, disp_left);
-//     right_matcher->compute(right_small, left_small, disp_right);
-
-//     cv::Mat filtered_disp;
-//     wls_filter->filter(disp_left, left_small, filtered_disp, disp_right);
-
-//     cv::Mat filtered_disp_float;
-//     filtered_disp.convertTo(filtered_disp_float, CV_32F, 1.0 / 16.0);
-
-//     cv::Mat disp_norm;
-//     cv::normalize(filtered_disp_float, disp_norm, 0, 255, cv::NORM_MINMAX, CV_8U);
-
-//     cv::Mat valid_mask = filtered_disp_float > 0;
-
-//     cv::Mat filter_disp_norm = cv::Mat::zeros(filtered_disp_float.size(), CV_8U);
-//     double minVal, maxVal;
-//     cv::minMaxLoc(filtered_disp_float, &minVal, &maxVal, nullptr, nullptr, valid_mask);
-    
-//     if (maxVal > minVal && maxVal > 0) {
-//         cv::Mat temp;
-//         filtered_disp_float.convertTo(temp, CV_8U, 255.0 / maxVal, 0);
-//         temp.copyTo(filter_disp_norm, valid_mask);  
-//     }
-
-//     return filtered_disp_float;
-// }
+return disp_vis;
+}                                                                                                                                                                                                       
 
 
 cv::Mat StereoDisparity::computeDepth(const cv::Mat& disparity) {
