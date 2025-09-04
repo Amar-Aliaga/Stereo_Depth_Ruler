@@ -4,6 +4,8 @@
 #include "stereo_calibrator.hpp"
 #include "stereo_disparity.hpp"
 #include "stereo_rectifier.hpp"
+#include "stereo_configuration.hpp"
+#include <sl/Camera.hpp>
 #include <iostream>
 #include <vector>
 #include <string>
@@ -125,9 +127,14 @@ void capture_frame(const std::string &output_file) {
 
 
 void image_desparity(const std::string &img_file) {
-    StereoRectifier rec;
+    StereoConfiguration config;
+    
+    if (!config.loadFromFile("config/stereo.yaml")) {
+        return;
+    }
+    StereoRectifier rec(config);
     cv::Mat left_img, right_img;
-    rec.loadCalibration("config/stereo.yaml");
+    //rec.loadCalibration("config/stereo.yaml");
     cv::Mat frame = cv::imread(img_file, cv::IMREAD_COLOR);
     cv::Mat left = frame(cv::Rect(0, 0, frame.cols/2, frame.rows));
     cv::Mat right = frame(cv::Rect(frame.cols/2, 0, frame.cols/2, frame.rows));
@@ -150,3 +157,155 @@ void image_desparity(const std::string &img_file) {
     cv::imshow("Original Left", disp);
     cv::waitKey(0);
 }
+
+void zed_footage() {
+    sl::Camera zed;
+
+    sl::InitParameters init_params;
+    init_params.camera_resolution = sl::RESOLUTION::HD720;
+    init_params.camera_fps = 30;
+    init_params.coordinate_system = sl::COORDINATE_SYSTEM::RIGHT_HANDED_Y_UP;
+    init_params.coordinate_units = sl::UNIT::METER;
+
+    sl::ERROR_CODE err = zed.open(init_params);
+    if(err != sl::ERROR_CODE::SUCCESS) {
+        std::cerr << "Error" << std::endl;
+        return;
+    }
+
+    sl::RuntimeParameters runtime_params;
+
+    sl::Mat zed_right_image, zed_left_image;
+    cv::Mat cv_right_image, cv_left_image;
+
+    while(true) {
+        if(zed.grab(runtime_params) == sl::ERROR_CODE::SUCCESS) {
+            zed.retrieveImage(zed_left_image, sl::VIEW::LEFT);
+            zed.retrieveImage(zed_right_image, sl::VIEW::RIGHT);
+
+            cv_left_image  = cv::Mat((int)zed_left_image.getHeight(),  (int)zed_left_image.getWidth(),  CV_8UC4, zed_left_image.getPtr<sl::uchar1>(sl::MEM::CPU));
+            cv_right_image = cv::Mat((int)zed_right_image.getHeight(), (int)zed_right_image.getWidth(), CV_8UC4, zed_right_image.getPtr<sl::uchar1>(sl::MEM::CPU));
+
+            cv::imshow("ZED Left Camera", cv_left_image);
+            cv::imshow("ZED Right Camera", cv_right_image);
+
+            char key = cv::waitKey(10);
+            if (key == 27) { 
+                break;
+            }
+        }
+    }
+
+}
+
+
+void live_disparity_map() {
+        const std::string &s {"/home/amar-aliaga/Desktop/my_video/output.mp4"};
+
+        StereoConfiguration config;
+
+        if (!config.loadFromFile("config/stereo.yaml")) {
+            return;
+        }
+        StereoRectifier rectifier(config);
+
+        StereoDisparity disparity_computer(config.Q);
+
+        cv::VideoCapture cap(s);
+        if (!cap.isOpened()) {
+            std::cerr << "Error: Could not open video file." << std::endl;
+            return;
+        }
+
+        while (true) {
+            cv::Mat frame;
+            cap >> frame;
+            if (frame.empty()) {
+                std::cout << "End of video." << std::endl;
+                break;
+            }
+
+
+            cv::Mat left_raw = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
+            cv::Mat right_raw = frame(cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows));
+
+            
+            cv::Mat left_rect, right_rect;
+            rectifier.rectify(left_raw, right_raw, left_rect, right_rect);
+
+            
+            cv::Mat disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
+
+            cv::Mat depth_map = disparity_computer.computeDepth(disp_float);
+
+            cv::Mat depthZ;
+            if (depth_map.channels() == 3) {
+                cv::extractChannel(depth_map, depthZ, 2); 
+            } else {
+                depthZ = depth_map; 
+            }
+
+//             double zmin = 500.0, zmax = 5000.0;
+//             cv::Mat z_valid = (depthZ > 0) & (depthZ < 10000) & (depthZ == depthZ);
+
+//             double zmin_raw, zmax_raw;
+//             cv::minMaxLoc(depthZ, &zmin_raw, &zmax_raw, nullptr, nullptr, z_valid);
+
+//             double alpha = 0.1;
+//             zmin = (1.0 - alpha) * zmin + alpha * zmin_raw;
+//             zmax = (1.0 - alpha) * zmax + alpha * zmax_raw;
+
+//             cv::Mat depth8u, depth_vis8u;
+// ;
+//             depthZ.convertTo(depth8u, CV_8U, 255.0 / (zmax - zmin), -255.0 * zmin / (zmax - zmin));
+
+//             cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
+// ...existing code...
+static double zmin_smooth = 1000.0, zmax_smooth = 2000.0;
+
+// Mask valid depth values: positive, finite, and not huge
+cv::Mat z_valid = (depthZ > 0) & (depthZ < 10000) & (depthZ == depthZ);
+
+double zmin_raw = 0, zmax_raw = 0;
+cv::minMaxLoc(depthZ, &zmin_raw, &zmax_raw, nullptr, nullptr, z_valid);
+
+// If no valid pixels, use defaults to avoid division by zero
+if (!(zmax_raw > zmin_raw)) {
+    zmin_raw = 1000.0;
+    zmax_raw = 2000.0;
+}
+
+double alpha = 0.1;
+zmin_smooth = (1.0 - alpha) * zmin_smooth + alpha * zmin_raw;
+zmax_smooth = (1.0 - alpha) * zmax_smooth + alpha * zmax_raw;
+
+// Clamp smoothing range to reasonable values
+zmin_smooth = std::max(0.0, std::min(zmin_smooth, 10000.0));
+zmax_smooth = std::max(zmin_smooth + 1.0, std::min(zmax_smooth, 10000.0)); // ensure zmax > zmin
+
+cv::Mat depth8u;
+depthZ.convertTo(depth8u, CV_8U, 255.0 / (zmax_smooth - zmin_smooth), -255.0 * zmin_smooth / (zmax_smooth - zmin_smooth));
+
+cv::Mat depth_vis8u;
+cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
+// ...existing code...
+
+            //depthZ.convertTo(depth_vis8u, CV_8U, 255.0 / (zmax - zmin), -255.0 * zmin / (zmax - zmin));
+          // cv::bitwise_not(depth_vis8u, depth_vis8u);
+            //cv::applyColorMap(depth_vis8u, depth_vis8u, cv::COLORMAP_TURBO);
+            //cv::Mat disp_display;
+            //cv::normalize(disp_float, disp_display, 0, 255, cv::NORM_MINMAX, CV_8U);
+            //cv::applyColorMap(disp_display, disp_display, cv::COLORMAP_JET); // Make it pretty
+
+            
+            cv::imshow("Rectified Left", left_rect);
+            cv::imshow("Rectified Right", right_rect);
+            cv::imshow("Depth Map", depth_vis8u);
+            cv::imshow("Disparity Map", disp_float);
+
+            if (cv::waitKey(1) == 27) {
+                break;
+            }
+        }
+    }
+
