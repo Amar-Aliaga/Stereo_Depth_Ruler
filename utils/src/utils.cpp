@@ -211,7 +211,7 @@ void live_disparity_map() {
 
         StereoDisparity disparity_computer(config.Q);
 
-        cv::VideoCapture cap(s);
+        cv::VideoCapture cap(2);
         if (!cap.isOpened()) {
             std::cerr << "Error: Could not open video file." << std::endl;
             return;

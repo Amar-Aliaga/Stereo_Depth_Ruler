@@ -3,8 +3,8 @@
 
 StereoDisparity::StereoDisparity(const cv::Mat &Q_matrix) : Q(Q_matrix) {
     matcher = cv::StereoSGBM::create(
-       // 0, 80, 5, 8*5*5, 32*5*5, 10, 63, 3, 100, 12, cv::StereoSGBM::MODE_SGBM_3WAY
-       0, 32, 3, 8*3*3, 32*3*3, 10, 100, 3, 100, 32, cv::StereoSGBM::MODE_SGBM_3WAY
+        0, 80, 5, 8*5*5, 32*5*5, 10, 63, 3, 100, 12, cv::StereoSGBM::MODE_SGBM_3WAY
+       //0, 32, 3, 8*3*3, 32*3*3, 10, 100, 3, 100, 32, cv::StereoSGBM::MODE_SGBM_3WAY
     );
     right_matcher = cv::ximgproc::createRightMatcher(matcher);
     wls_filter = cv::ximgproc::createDisparityWLSFilter(matcher);
@@ -33,7 +33,7 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
     cv::Mat filtered_disp_float;
     filtered_disp.convertTo(filtered_disp_float, CV_32F, 1.0 / 16.0);
 
-    //cv::medianBlur(filtered_disp_float, filtered_disp_float, 3);
+    cv::medianBlur(filtered_disp_float, filtered_disp_float, 3);
 
     const int numDisp = matcher->getNumDisparities();
     cv::Mat valid_mask = filtered_disp_float > 0;
@@ -58,7 +58,7 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
     norm_gamma.convertTo(disp_vis, CV_8U, 255.0);
 
     static cv::Mat prev_disp_vis;
-    const float alpha = 0.85f;
+    const float alpha =0.5f;
     if (!prev_disp_vis.empty()) {
         cv::addWeighted(prev_disp_vis, alpha, disp_vis, 1.0f - alpha, 0.0, disp_vis);
     }
