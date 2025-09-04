@@ -211,7 +211,7 @@ void live_disparity_map() {
 
         StereoDisparity disparity_computer(config.Q);
 
-        cv::VideoCapture cap(2);
+        cv::VideoCapture cap(s);
         if (!cap.isOpened()) {
             std::cerr << "Error: Could not open video file." << std::endl;
             return;
@@ -245,14 +245,54 @@ void live_disparity_map() {
                 depthZ = depth_map; 
             }
 
-            double zmin = 0, zmax = 0;
+//             double zmin = 500.0, zmax = 5000.0;
+//             cv::Mat z_valid = (depthZ > 0) & (depthZ < 10000) & (depthZ == depthZ);
 
-            cv::Mat z_valid = (depthZ > 0) & (depthZ < 10000) & (depthZ == depthZ);
-            cv::minMaxLoc(depthZ, &zmin, &zmax, nullptr, nullptr, z_valid);
-            cv::Mat depth_vis8u;
-            depthZ.convertTo(depth_vis8u, CV_8U, 255.0 / (zmax - zmin), -255.0 * zmin / (zmax - zmin));
-            cv::bitwise_not(depth_vis8u, depth_vis8u);
-            cv::applyColorMap(depth_vis8u, depth_vis8u, cv::COLORMAP_TURBO);
+//             double zmin_raw, zmax_raw;
+//             cv::minMaxLoc(depthZ, &zmin_raw, &zmax_raw, nullptr, nullptr, z_valid);
+
+//             double alpha = 0.1;
+//             zmin = (1.0 - alpha) * zmin + alpha * zmin_raw;
+//             zmax = (1.0 - alpha) * zmax + alpha * zmax_raw;
+
+//             cv::Mat depth8u, depth_vis8u;
+// ;
+//             depthZ.convertTo(depth8u, CV_8U, 255.0 / (zmax - zmin), -255.0 * zmin / (zmax - zmin));
+
+//             cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
+// ...existing code...
+static double zmin_smooth = 1000.0, zmax_smooth = 2000.0;
+
+// Mask valid depth values: positive, finite, and not huge
+cv::Mat z_valid = (depthZ > 0) & (depthZ < 10000) & (depthZ == depthZ);
+
+double zmin_raw = 0, zmax_raw = 0;
+cv::minMaxLoc(depthZ, &zmin_raw, &zmax_raw, nullptr, nullptr, z_valid);
+
+// If no valid pixels, use defaults to avoid division by zero
+if (!(zmax_raw > zmin_raw)) {
+    zmin_raw = 1000.0;
+    zmax_raw = 2000.0;
+}
+
+double alpha = 0.1;
+zmin_smooth = (1.0 - alpha) * zmin_smooth + alpha * zmin_raw;
+zmax_smooth = (1.0 - alpha) * zmax_smooth + alpha * zmax_raw;
+
+// Clamp smoothing range to reasonable values
+zmin_smooth = std::max(0.0, std::min(zmin_smooth, 10000.0));
+zmax_smooth = std::max(zmin_smooth + 1.0, std::min(zmax_smooth, 10000.0)); // ensure zmax > zmin
+
+cv::Mat depth8u;
+depthZ.convertTo(depth8u, CV_8U, 255.0 / (zmax_smooth - zmin_smooth), -255.0 * zmin_smooth / (zmax_smooth - zmin_smooth));
+
+cv::Mat depth_vis8u;
+cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
+// ...existing code...
+
+            //depthZ.convertTo(depth_vis8u, CV_8U, 255.0 / (zmax - zmin), -255.0 * zmin / (zmax - zmin));
+          // cv::bitwise_not(depth_vis8u, depth_vis8u);
+            //cv::applyColorMap(depth_vis8u, depth_vis8u, cv::COLORMAP_TURBO);
             //cv::Mat disp_display;
             //cv::normalize(disp_float, disp_display, 0, 255, cv::NORM_MINMAX, CV_8U);
             //cv::applyColorMap(disp_display, disp_display, cv::COLORMAP_JET); // Make it pretty
@@ -268,3 +308,4 @@ void live_disparity_map() {
             }
         }
     }
+

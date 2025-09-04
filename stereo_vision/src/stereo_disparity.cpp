@@ -58,7 +58,7 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
     norm_gamma.convertTo(disp_vis, CV_8U, 255.0);
 
     static cv::Mat prev_disp_vis;
-    const float alpha =0.5f;
+    const float alpha = 0.61f;
     if (!prev_disp_vis.empty()) {
         cv::addWeighted(prev_disp_vis, alpha, disp_vis, 1.0f - alpha, 0.0, disp_vis);
     }
