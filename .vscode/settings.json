@@ -82,6 +82,7 @@
         "ios": "cpp",
         "cfenv": "cpp",
         "shared_mutex": "cpp",
-        "stdfloat": "cpp"
+        "stdfloat": "cpp",
+        "__locale": "cpp"
     }
 }

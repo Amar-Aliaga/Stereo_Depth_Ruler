@@ -229,7 +229,7 @@ void live_disparity_map() {
 
         StereoDisparity disparity_computer(config.Q);
 
-        cv::VideoCapture cap(2);
+        cv::VideoCapture cap(s);
         if (!cap.isOpened()) {
             std::cerr << "Error: Could not open video file." << std::endl;
             return;
@@ -278,35 +278,31 @@ void live_disparity_map() {
 //             depthZ.convertTo(depth8u, CV_8U, 255.0 / (zmax - zmin), -255.0 * zmin / (zmax - zmin));
 
 //             cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
-// ...existing code...
-static double zmin_smooth = 1000.0, zmax_smooth = 2000.0;
 
-// Mask valid depth values: positive, finite, and not huge
-cv::Mat z_valid = (depthZ > 0) & (depthZ < 10000) & (depthZ == depthZ);
+    static double zmin_smooth = 1000.0, zmax_smooth = 2000.0;
 
-double zmin_raw = 0, zmax_raw = 0;
-cv::minMaxLoc(depthZ, &zmin_raw, &zmax_raw, nullptr, nullptr, z_valid);
+    cv::Mat z_valid = (depthZ > 0) & (depthZ < 10000) & (depthZ == depthZ);
 
-// If no valid pixels, use defaults to avoid division by zero
-if (!(zmax_raw > zmin_raw)) {
-    zmin_raw = 1000.0;
-    zmax_raw = 2000.0;
-}
+    double zmin_raw = 0, zmax_raw = 0;
+    cv::minMaxLoc(depthZ, &zmin_raw, &zmax_raw, nullptr, nullptr, z_valid);
 
-double alpha = 0.1;
-zmin_smooth = (1.0 - alpha) * zmin_smooth + alpha * zmin_raw;
-zmax_smooth = (1.0 - alpha) * zmax_smooth + alpha * zmax_raw;
+    if (!(zmax_raw > zmin_raw)) {
+        zmin_raw = 1000.0;
+        zmax_raw = 2000.0;
+    }
 
-// Clamp smoothing range to reasonable values
-zmin_smooth = std::max(0.0, std::min(zmin_smooth, 10000.0));
-zmax_smooth = std::max(zmin_smooth + 1.0, std::min(zmax_smooth, 10000.0)); // ensure zmax > zmin
+    double alpha = 0.1;
+    zmin_smooth = (1.0 - alpha) * zmin_smooth + alpha * zmin_raw;
+    zmax_smooth = (1.0 - alpha) * zmax_smooth + alpha * zmax_raw;
 
-cv::Mat depth8u;
-depthZ.convertTo(depth8u, CV_8U, 255.0 / (zmax_smooth - zmin_smooth), -255.0 * zmin_smooth / (zmax_smooth - zmin_smooth));
+    zmin_smooth = std::max(0.0, std::min(zmin_smooth, 10000.0));
+    zmax_smooth = std::max(zmin_smooth + 1.0, std::min(zmax_smooth, 10000.0)); // ensure zmax > zmin
 
-cv::Mat depth_vis8u;
-cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
-// ...existing code...
+    cv::Mat depth8u;
+    depthZ.convertTo(depth8u, CV_8U, 255.0 / (zmax_smooth - zmin_smooth), -255.0 * zmin_smooth / (zmax_smooth - zmin_smooth));
+
+    cv::Mat depth_vis8u;
+    cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
 
             //depthZ.convertTo(depth_vis8u, CV_8U, 255.0 / (zmax - zmin), -255.0 * zmin / (zmax - zmin));
           // cv::bitwise_not(depth_vis8u, depth_vis8u);
@@ -315,9 +311,8 @@ cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
             //cv::normalize(disp_float, disp_display, 0, 255, cv::NORM_MINMAX, CV_8U);
             //cv::applyColorMap(disp_display, disp_display, cv::COLORMAP_JET); // Make it pretty
 
-            global_depth_map = depth_map;
+    global_depth_map = depth_map;
 
-    // Show disparity and set mouse callback for measurement
     cv::imshow("Disparity (vis)", disp_float);
     cv::setMouseCallback("Disparity (vis)", onMouseMeasure);
             
@@ -362,7 +357,7 @@ void image_disparity_measure(const std::string &img_file) {
         depthZ = depth_map;
     }
 
-    // Mask valid depth values: positive, finite, and not huge
+
     cv::Mat z_valid = (depthZ > 0) & (depthZ < 10000) & (depthZ == depthZ);
 
     double zmin_raw = 0, zmax_raw = 0;
@@ -378,10 +373,8 @@ void image_disparity_measure(const std::string &img_file) {
     cv::Mat depth_vis8u;
     cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
 
-    // Save depth map for measurement
     global_depth_map = depth_map;
 
-    // Show and measure
     cv::imshow("Rectified Left", left_rect);
     cv::imshow("Rectified Right", right_rect);
     cv::imshow("Disparity (vis)", disp_float);
