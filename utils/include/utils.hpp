@@ -1,10 +1,11 @@
 #pragma once
 
 #include <string>
-
+void onMouseMeasure(int event, int x, int y, int, void*);
 void change_filename();
 void save_frames();
 void capture_frame(const std::string &output_file);
 void image_desparity(const std::string &img_file);
 void zed_footage();
 void live_disparity_map();
+void image_disparity_measure(const std::string &img_file);

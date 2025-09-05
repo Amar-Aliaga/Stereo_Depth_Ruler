@@ -2,6 +2,7 @@
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/ximgproc.hpp>
+#include <opencv2/ximgproc/edge_filter.hpp>
 #include "stereo_rectifier.hpp"
 
 class StereoDisparity {

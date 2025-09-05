@@ -26,6 +26,7 @@ int main() {
     StereoDisparity disparity_computer(config.Q);
 
     live_disparity_map();
+    //image_disparity_measure("/home/amar-aliaga/rama_img.jpg");
 
     return EXIT_SUCCESS;
 }
