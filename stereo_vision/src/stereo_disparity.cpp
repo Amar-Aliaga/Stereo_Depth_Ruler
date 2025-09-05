@@ -3,14 +3,12 @@
 
 StereoDisparity::StereoDisparity(const cv::Mat &Q_matrix) : Q(Q_matrix) {
     matcher = cv::StereoSGBM::create(
-        0, 64, 3, 8*3*3, 32*3*3, 2, 63, 12, 100, 12, cv::StereoSGBM::MODE_SGBM_3WAY
-       //0, 32, 3, 8*3*3, 32*3*3, 10, 100, 3, 100, 32, cv::StereoSGBM::MODE_SGBM_3WAY
+        0, 80, 3, 8*3*3, 32*3*3, 2, 63, 15, 100, 12, cv::StereoSGBM::MODE_SGBM_3WAY
     );
     right_matcher = cv::ximgproc::createRightMatcher(matcher);
     wls_filter = cv::ximgproc::createDisparityWLSFilter(matcher);
-    wls_filter->setLambda(3000.0);
+    wls_filter->setLambda(7000.0);
     wls_filter->setSigmaColor(1.0);
-    //wls_filter->setLRCrossCheckingValue(24);
 }
 
 
@@ -33,7 +31,17 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
     cv::Mat filtered_disp_float;
     filtered_disp.convertTo(filtered_disp_float, CV_32F, 1.0 / 16.0);
 
-    cv::medianBlur(filtered_disp_float, filtered_disp_float, 3);
+    cv::Mat guided; 
+    cv::ximgproc::guidedFilter(
+        left_small,              // guidance image (rectified left)
+        filtered_disp_float, 
+        guided,    // input disparity
+        5,                       // radius (try 5–9)
+        1e-3                     // eps (try 1e-3 to 1e-2)
+    );
+    //filtered_disp_float = guided.clone();
+
+    //cv::medianBlur(filtered_disp_float, filtered_disp_float, 3);
 
     const int numDisp = matcher->getNumDisparities();
     cv::Mat valid_mask = filtered_disp_float > 0;
@@ -58,7 +66,7 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
     norm_gamma.convertTo(disp_vis, CV_8U, 255.0);
 
     static cv::Mat prev_disp_vis;
-    const float alpha = 0.61f;
+    const float alpha = 0.45f;
     if (!prev_disp_vis.empty()) {
         cv::addWeighted(prev_disp_vis, alpha, disp_vis, 1.0f - alpha, 0.0, disp_vis);
     }

@@ -12,6 +12,24 @@
 #include <filesystem>
 #include <limits>
 
+static std::vector<cv::Point> clicked_points;
+static cv::Mat global_depth_map;
+
+// Mouse callback for measuring distance
+void onMouseMeasure(int event, int x, int y, int, void*) {
+    if (event == cv::EVENT_LBUTTONDOWN && !global_depth_map.empty()) {
+        clicked_points.push_back(cv::Point(x, y));
+        if (clicked_points.size() == 2) {
+            cv::Vec3f xyz1 = global_depth_map.at<cv::Vec3f>(clicked_points[0]);
+            cv::Vec3f xyz2 = global_depth_map.at<cv::Vec3f>(clicked_points[1]);
+            double dist = cv::norm(xyz1 - xyz2);
+            std::cout << "Distance: " << dist << " mm" << std::endl;
+            clicked_points.clear();
+        }
+    }
+}
+
+
 void save_frames() {
     cv::VideoCapture cap(2);
 
@@ -211,7 +229,7 @@ void live_disparity_map() {
 
         StereoDisparity disparity_computer(config.Q);
 
-        cv::VideoCapture cap(s);
+        cv::VideoCapture cap(2);
         if (!cap.isOpened()) {
             std::cerr << "Error: Could not open video file." << std::endl;
             return;
@@ -297,9 +315,14 @@ cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
             //cv::normalize(disp_float, disp_display, 0, 255, cv::NORM_MINMAX, CV_8U);
             //cv::applyColorMap(disp_display, disp_display, cv::COLORMAP_JET); // Make it pretty
 
+            global_depth_map = depth_map;
+
+    // Show disparity and set mouse callback for measurement
+    cv::imshow("Disparity (vis)", disp_float);
+    cv::setMouseCallback("Disparity (vis)", onMouseMeasure);
             
-            cv::imshow("Rectified Left", left_rect);
-            cv::imshow("Rectified Right", right_rect);
+            // cv::imshow("Rectified Left", left_rect);
+            // cv::imshow("Rectified Right", right_rect);
             cv::imshow("Depth Map", depth_vis8u);
             cv::imshow("Disparity Map", disp_float);
 
@@ -309,3 +332,63 @@ cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
         }
     }
 
+void image_disparity_measure(const std::string &img_file) {
+    StereoConfiguration config;
+    if (!config.loadFromFile("config/stereo.yaml")) {
+        std::cerr << "Could not load stereo.yaml" << std::endl;
+        return;
+    }
+    StereoRectifier rectifier(config);
+    StereoDisparity disparity_computer(config.Q);
+
+    cv::Mat frame = cv::imread(img_file, cv::IMREAD_COLOR);
+    if (frame.empty()) {
+        std::cerr << "Could not load image: " << img_file << std::endl;
+        return;
+    }
+    cv::Mat left_raw = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
+    cv::Mat right_raw = frame(cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows));
+
+    cv::Mat left_rect, right_rect;
+    rectifier.rectify(left_raw, right_raw, left_rect, right_rect);
+
+    cv::Mat disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
+    cv::Mat depth_map = disparity_computer.computeDepth(disp_float);
+
+    cv::Mat depthZ;
+    if (depth_map.channels() == 3) {
+        cv::extractChannel(depth_map, depthZ, 2);
+    } else {
+        depthZ = depth_map;
+    }
+
+    // Mask valid depth values: positive, finite, and not huge
+    cv::Mat z_valid = (depthZ > 0) & (depthZ < 10000) & (depthZ == depthZ);
+
+    double zmin_raw = 0, zmax_raw = 0;
+    cv::minMaxLoc(depthZ, &zmin_raw, &zmax_raw, nullptr, nullptr, z_valid);
+
+    if (!(zmax_raw > zmin_raw)) {
+        zmin_raw = 1000.0;
+        zmax_raw = 2000.0;
+    }
+
+    cv::Mat depth8u;
+    depthZ.convertTo(depth8u, CV_8U, 255.0 / (zmax_raw - zmin_raw), -255.0 * zmin_raw / (zmax_raw - zmin_raw));
+    cv::Mat depth_vis8u;
+    cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
+
+    // Save depth map for measurement
+    global_depth_map = depth_map;
+
+    // Show and measure
+    cv::imshow("Rectified Left", left_rect);
+    cv::imshow("Rectified Right", right_rect);
+    cv::imshow("Disparity (vis)", disp_float);
+    cv::imshow("Depth Map", depth_vis8u);
+    cv::setMouseCallback("Disparity (vis)", onMouseMeasure);
+
+    std::cout << "Click two points in the Disparity (vis) window to measure distance." << std::endl;
+    cv::waitKey(0);
+    cv::destroyAllWindows();
+}
