@@ -3,12 +3,14 @@
 
 StereoDisparity::StereoDisparity(const cv::Mat &Q_matrix) : Q(Q_matrix) {
     matcher = cv::StereoSGBM::create(
-        0, 80, 3, 8*3*3, 32*3*3, 2, 63, 15, 100, 12, cv::StereoSGBM::MODE_SGBM_3WAY
+        //0, 80, 3, 8*3*3, 32*3*3, 2, 63, 15, 100, 12, cv::StereoSGBM::MODE_SGBM_3WAY
+        0, 80, 1, 8*1*1, 32*1*1, 2, 63, 10, 100, 12, cv::StereoSGBM::MODE_SGBM_3WAY
+        
     );
     right_matcher = cv::ximgproc::createRightMatcher(matcher);
     wls_filter = cv::ximgproc::createDisparityWLSFilter(matcher);
-    wls_filter->setLambda(7000.0);
-    wls_filter->setSigmaColor(0.9);
+    wls_filter->setLambda(8000.0);
+    wls_filter->setSigmaColor(1.5);
 }
 
 
@@ -31,27 +33,21 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
     cv::Mat filtered_disp_float;
     filtered_disp.convertTo(filtered_disp_float, CV_32F, 1.0 / 16.0);
 
-    // cv::Mat guided; 
-    // cv::ximgproc::guidedFilter(
-    //     left_small,            
-    //     filtered_disp_float, 
-    //     guided,  
-    //     5,          
-    //     1e-3                   
-    // );
-    // filtered_disp_float = guided.clone();
+    cv::Mat conf_map = wls_filter->getConfidenceMap();
 
-    //cv::medianBlur(filtered_disp_float, filtered_disp_float, 3);
+    return filtered_disp_float;
+}     
 
+
+cv::Mat StereoDisparity::show_disparityMap(const cv::Mat &disparity) {
     const int numDisp = matcher->getNumDisparities();
-    cv::Mat valid_mask = filtered_disp_float > 0;
-    cv::Mat filtered_disp_float_masked = filtered_disp_float.clone();
+    cv::Mat valid_mask = disparity > 0;
+    cv::Mat filtered_disp_float_masked = disparity.clone();
     filtered_disp_float_masked.setTo(0, ~valid_mask);
 
 
     cv::Mat norm01;
     filtered_disp_float_masked.convertTo(norm01, CV_32F, 1.0f / std::max(1, numDisp));
-
 
     const bool apply_gamma = true;
     const double gamma = 0.6; 
@@ -62,24 +58,69 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
         norm_gamma = norm01;
     }
 
-    cv::Mat disp_vis;
-    norm_gamma.convertTo(disp_vis, CV_8U, 255.0);
+    cv::Mat show_disp;
+    norm_gamma.convertTo(show_disp, CV_8U, 255.0);
 
-    static cv::Mat prev_disp_vis;
-    const float alpha = 0.55f;
-    if (!prev_disp_vis.empty()) {
-        cv::addWeighted(prev_disp_vis, alpha, disp_vis, 1.0f - alpha, 0.0, disp_vis);
+    cv::Mat working_disp = disparity.clone();
+    
+    if (!prev_vis.empty() && prev_vis.size() == show_disp.size()) {
+        const float alpha = 0.63f; 
+        cv::addWeighted(prev_vis, alpha, show_disp, 1 - alpha, 0, show_disp);
     }
-    prev_disp_vis = disp_vis.clone();
-
-return disp_vis;
-}                                                                                                                                                                                                       
+    prev_vis = show_disp.clone();
+    
+    return prev_vis;
+}
 
 
 cv::Mat StereoDisparity::computeDepth(const cv::Mat& disparity) {
     cv::Mat depth;
     cv::reprojectImageTo3D(disparity, depth, Q);
     return depth;
+}
+
+
+cv::Mat StereoDisparity::show_depthMap(const cv::Mat &disparity) {
+    cv::Mat depthZ;
+    if (disparity.channels() == 3) {
+        cv::extractChannel(disparity, depthZ, 2);  
+    } else {
+        depthZ = disparity;
+    }
+    
+    static double zmin_smooth = 1000.0, zmax_smooth = 2000.0;
+
+    cv::Mat z_valid = (depthZ > 0) & (depthZ < 10000) & (depthZ == depthZ);
+
+    double zmin_raw = 0, zmax_raw = 0;
+    cv::minMaxLoc(depthZ, &zmin_raw, &zmax_raw, nullptr, nullptr, z_valid);
+
+    if (!(zmax_raw > zmin_raw)) {
+        zmin_raw = 1000.0;
+        zmax_raw = 2000.0;
+    }
+
+    double alpha = 0.1;
+    zmin_smooth = (1.0 - alpha) * zmin_smooth + alpha * zmin_raw;
+    zmax_smooth = (1.0 - alpha) * zmax_smooth + alpha * zmax_raw;
+
+    zmin_smooth = std::max(0.0, std::min(zmin_smooth, 10000.0));
+    zmax_smooth = std::max(zmin_smooth + 1.0, std::min(zmax_smooth, 10000.0));
+
+    cv::Mat depth8u;
+    depthZ.convertTo(depth8u, CV_8U, 255.0 / (zmax_smooth - zmin_smooth), -255.0 * zmin_smooth / (zmax_smooth - zmin_smooth));
+
+    cv::Mat depth_vis8u;
+    cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
+
+    if (!prev_depth_vis.empty() && prev_depth_vis.size() == depth_vis8u.size()) {
+        const float vis_alpha = 0.5f;
+        cv::addWeighted(prev_depth_vis, vis_alpha, depth_vis8u, 1.0f - vis_alpha, 0, depth_vis8u);
+    }
+    
+    prev_depth_vis = depth_vis8u.clone();
+
+    return depth_vis8u;
 }
 
 
