@@ -4,13 +4,13 @@
 StereoDisparity::StereoDisparity(const cv::Mat &Q_matrix) : Q(Q_matrix) {
     matcher = cv::StereoSGBM::create(
         //0, 80, 3, 8*3*3, 32*3*3, 2, 63, 15, 100, 12, cv::StereoSGBM::MODE_SGBM_3WAY
-        0, 80, 1, 8*1*1, 32*1*1, 2, 63, 10, 100, 12, cv::StereoSGBM::MODE_SGBM_3WAY
+        0, 90, 1, 8*1*1, 32*1*1, 2, 63, 10, 100, 12, cv::StereoSGBM::MODE_SGBM_3WAY
         
     );
     right_matcher = cv::ximgproc::createRightMatcher(matcher);
     wls_filter = cv::ximgproc::createDisparityWLSFilter(matcher);
-    wls_filter->setLambda(8000.0);
-    wls_filter->setSigmaColor(1.5);
+    wls_filter->setLambda(6700.0);
+    wls_filter->setSigmaColor(1.3);
 }
 
 
