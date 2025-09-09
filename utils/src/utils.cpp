@@ -160,7 +160,7 @@ void image_desparity(const std::string &img_file) {
     //rec.drawEpipolarLines(left_img, right_img);
 
 
-    StereoDisparity disparity (rec.getQ());
+    StereoDisparity disparity (config.Q);
         
     cv::Mat disp = disparity.computeDisparity(left_img, right_img);
     cv::Mat dispNormalized;
