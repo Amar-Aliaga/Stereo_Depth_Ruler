@@ -16,7 +16,6 @@ int main() {
 
     StereoCalibrator cal;
     //cal.calibrate(outputFile);
-    // cal.saveCalibration(outputFile);
 
     StereoConfiguration config;
     if (!config.loadFromFile(outputFile)) {
