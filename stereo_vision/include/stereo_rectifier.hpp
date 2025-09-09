@@ -16,7 +16,4 @@ public:
     void rectify(const cv::Mat &left_src, const cv::Mat &right_src, cv::Mat &left_dst, cv::Mat &right_dst);
     void drawEpipolarLines(cv::Mat &rectifiedLeft, cv::Mat &rectifiedRight);
     bool run_rectification();
-
-    const cv::Size &getImageSize() const noexcept;
-    const cv::Mat  &getQ() const noexcept;
 };

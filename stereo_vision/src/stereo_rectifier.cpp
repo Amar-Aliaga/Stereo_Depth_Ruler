@@ -95,7 +95,3 @@ bool StereoRectifier::run_rectification() {
     }
     return true;
 }
-
-
-const cv::Size &StereoRectifier::getImageSize() const noexcept { return config.imageSize; }
-const cv::Mat  &StereoRectifier::getQ() const noexcept { return config.Q; }

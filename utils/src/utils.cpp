@@ -269,6 +269,9 @@ void live_disparity_map() {
         cv::Mat display_disparity = disparity_computer.show_disparityMap(disp_float);
         cv::Mat display_depth = disparity_computer.show_depthMap(depth_map);
 
+
+        cv::imshow("Left Rectified", left_raw);
+        cv::imshow("Right Rectified", right_raw);
         cv::imshow("Disparity Map", display_disparity);
         cv::imshow("Depth Map", display_depth);
 
@@ -277,7 +280,6 @@ void live_disparity_map() {
         }
     }
 }
-
 
 
 void image_disparity_measure(const std::string &img_file) {
