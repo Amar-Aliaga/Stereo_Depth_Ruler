@@ -48,10 +48,10 @@ void onMouseMeasure(int event, int x, int y, int, void *user_data) {
     
     clicked_points.push_back(cv::Point(x, y));
     if (clicked_points.size() == 2) {
-        cv::Vec3f xyz1 = rawMap->at<float>(clicked_points[0]);
-        cv::Vec3f xyz2 = rawMap->at<float>(clicked_points[1]);
+        cv::Vec3f xyz1 = rawMap->at<cv::Vec3f>(clicked_points[0]);
+        cv::Vec3f xyz2 = rawMap->at<cv::Vec3f>(clicked_points[1]);
         cv::line(*disMap, clicked_points[0], clicked_points[1], cv::Scalar(0, 0 ,255), 2);
-        cv::imshow("Disparity (vis)", *disMap);
+        cv::imshow("Depth Map", *disMap);
         double dist = cv::norm(xyz1 - xyz2);
         std::cout << "Distance: " << dist << " mm" << std::endl;
         clicked_points.clear();
@@ -378,31 +378,35 @@ void live_disparity_map() {
     int h = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
     std::cout << "Res: " << w << "x" << h << std::endl;
 
+    bool paused = false;
+    cv::Mat stored_frame;
+
     while (true) {
         cv::Mat frame;
-        cap >> frame;
-        if (frame.empty()) {
-            std::cout << "End of video." << std::endl;
-            break;
-        }
 
+        if(!paused) {
+            cap >> frame;
+            if (frame.empty()) {
+                std::cout << "End of video." << std::endl;
+                break;
+            }
+            stored_frame = frame.clone();
+        } else {
+            frame = stored_frame.clone();
+        }
+        
 
         cv::Mat left_raw  = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
         cv::Mat right_raw = frame(cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows));
 
-        
         cv::Mat left_rect, right_rect;
         rectifier.rectify(left_raw, right_raw, left_rect, right_rect);
         
         cv::Mat disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
-
         cv::Mat depth_map = disparity_computer.computeDepth(disp_float);
-
-        
 
         cv::Mat display_disparity = disparity_computer.show_disparityMap(disp_float);
         cv::Mat display_depth = disparity_computer.show_depthMap(depth_map);
-        
 
         cv::Mat disparity_heatmap;
         cv::applyColorMap(display_disparity, disparity_heatmap, cv::COLORMAP_JET);
@@ -412,16 +416,24 @@ void live_disparity_map() {
         cv::Mat overlay;
         cv::addWeighted(left_rect, 0.7, disparity_heatmap, 0.3, 0, overlay);
 
+        MouseMat mouse_data;
+        mouse_data.raw_map = &depth_map;
+        mouse_data.dis_map = &display_depth;
+
 
         // cv::imshow("Left Rectified", left_raw);
         // cv::imshow("Right Rectified", right_raw);
         // cv::imshow("Disparity Map", display_disparity);
-        // cv::imshow("Depth Map", display_depth);
+        cv::imshow("Depth Map", display_depth);
 
         cv::imshow("Left: rectified image + disparity overlay", overlay);
+        cv::setMouseCallback("Depth Map", onMouseMeasure, &mouse_data);
 
-        if (cv::waitKey(1) == 27) {
+        int key = cv::waitKey(1);
+        if (key == 27) {
             break;
+        }else if (key == 102 || key == 70) {
+            paused = !paused;
         }
     }
 }
@@ -441,7 +453,7 @@ void image_disparity_measure(const std::string &img_file) {
         std::cerr << "Could not load image: " << img_file << std::endl;
         return;
     }
-    cv::Mat left_raw = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
+    cv::Mat left_raw  = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
     cv::Mat right_raw = frame(cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows));
 
     cv::Mat left_rect, right_rect;
