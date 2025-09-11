@@ -3,14 +3,14 @@
 
 StereoDisparity::StereoDisparity(const cv::Mat &Q_matrix) : Q(Q_matrix) {
     matcher = cv::StereoSGBM::create(
-        //0, 80, 3, 8*3*3, 32*3*3, 2, 63, 15, 100, 12, cv::StereoSGBM::MODE_SGBM_3WAY
-        0,80, 1, 8*1*1, 32*1*1, 2, 45, 11, 75, 12, cv::StereoSGBM::MODE_SGBM_3WAY
+        0, 80, 5, 8*5*5*3, 32*5*5*3, 1, 63, 12, 200, 2, cv::StereoSGBM::MODE_SGBM_3WAY
+        //0,80, 1, 8*1*1, 32*1*1, 2, 45, 11, 75, 12, cv::StereoSGBM::MODE_SGBM_3WAY
         
     );
     right_matcher = cv::ximgproc::createRightMatcher(matcher);
     wls_filter = cv::ximgproc::createDisparityWLSFilter(matcher);
-    wls_filter->setLambda(2000.0);
-    wls_filter->setSigmaColor(2.1);
+    wls_filter->setLambda(8000.0);
+    wls_filter->setSigmaColor(1.1);
 }
 
 
@@ -64,7 +64,7 @@ cv::Mat StereoDisparity::show_disparityMap(const cv::Mat &disparity) {
     cv::Mat working_disp = disparity.clone();
     
     if (!prev_vis.empty() && prev_vis.size() == show_disp.size()) {
-        const float alpha = 0.39f; 
+        const float alpha = 0.49f; 
         cv::addWeighted(prev_vis, alpha, show_disp, 1 - alpha, 0, show_disp);
     }
     prev_vis = show_disp.clone();
@@ -114,13 +114,13 @@ cv::Mat StereoDisparity::show_depthMap(const cv::Mat &disparity) {
     cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
 
     if (!prev_depth_vis.empty() && prev_depth_vis.size() == depth_vis8u.size()) {
-        const float vis_alpha = 0.39f;
+        const float vis_alpha = 0.49f;
         cv::addWeighted(prev_depth_vis, vis_alpha, depth_vis8u, 1.0f - vis_alpha, 0, depth_vis8u);
     }
     
     prev_depth_vis = depth_vis8u.clone();
 
-    return depth_vis8u;
+    return prev_depth_vis;
 }
 
 
