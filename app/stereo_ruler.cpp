@@ -16,7 +16,6 @@ int main() {
 
     StereoCalibrator cal;
     //cal.calibrate(outputFile);
-    // cal.saveCalibration(outputFile);
 
     StereoConfiguration config;
     if (!config.loadFromFile(outputFile)) {
@@ -27,6 +26,7 @@ int main() {
 
     live_disparity_map();
     //image_disparity_measure("/home/amar-aliaga/rama_img.jpg");
+
 
     return EXIT_SUCCESS;
 }

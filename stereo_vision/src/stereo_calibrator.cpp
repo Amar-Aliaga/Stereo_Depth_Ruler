@@ -112,9 +112,6 @@ bool StereoCalibrator::calibrate(const std::string &outputFile) {
 
     std::cout << "Stereo calibration RMS error: " << rmsStereo << std::endl;
 
-    // config.T = -config.T;
-    // config.R = config.R.t();
-
     cv::stereoRectify(
         config.cameraMatrixLeft, config.distCoeffsLeft,
         config.cameraMatrixRight, config.distCoeffsRight,
@@ -194,17 +191,4 @@ bool StereoCalibrator::run_calibration() {
 
 const int StereoCalibrator::getBoardSize_Width()    const noexcept { return boardSize.width;   }
 const int StereoCalibrator::getBoardSize_Height()   const noexcept { return boardSize.height;  }
-const int StereoCalibrator::getSquareSize()         const noexcept { return squareSize;        }
-
-const cv::Mat &StereoCalibrator::getCameraMatrixLeft()   const noexcept { return config.cameraMatrixLeft;  }
-const cv::Mat &StereoCalibrator::getDistCoeffsLeft()     const noexcept { return config.distCoeffsLeft;    }
-const cv::Mat &StereoCalibrator::getCameraMatrixRight()  const noexcept { return config.cameraMatrixRight; }
-const cv::Mat &StereoCalibrator::getDistCoeffsRight()    const noexcept { return config.distCoeffsRight;   }
-
-const cv::Mat &StereoCalibrator::getRotation()           const noexcept { return config.R;  }
-const cv::Mat &StereoCalibrator::getTranslation()        const noexcept { return config.T;  }
-const cv::Mat &StereoCalibrator::getRectificationLeft()  const noexcept { return config.R1; }
-const cv::Mat &StereoCalibrator::getRectificationRight() const noexcept { return config.R2; }
-const cv::Mat &StereoCalibrator::getProjectionLeft()     const noexcept { return config.P1; }
-const cv::Mat &StereoCalibrator::getProjectionRight()    const noexcept { return config.P2; }
-const cv::Mat &StereoCalibrator::getDisparityToDepth()   const noexcept { return config.Q;  }
+const float StereoCalibrator::getSquareSize()         const noexcept { return squareSize;        }

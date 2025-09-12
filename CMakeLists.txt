@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
 project(StereoVisionProject LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -16,3 +16,4 @@ list(APPEND CMAKE_PREFIX_PATH "/usr/local/zed")
 add_subdirectory(stereo_vision)
 add_subdirectory(utils)
 add_subdirectory(app)
+add_subdirectory(point_cloud) 

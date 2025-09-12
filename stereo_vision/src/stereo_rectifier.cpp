@@ -20,20 +20,24 @@ void StereoRectifier::rectify(const cv::Mat &left_src, const cv::Mat &right_src,
         return;
     }
 
-     cv::Mat leftResized, rightResized;
+    left_src.size()  = cv::Size(1280, 720);
+    right_src.size() = cv::Size(1280, 720);
+
+    //cv::Mat leftResized, rightResized;
     if (left_src.size() != config.imageSize || right_src.size() != config.imageSize) {
-    std::cerr << "Warning: Resizing input images to match calibration size (" << config.imageSize << ")." << std::endl;
-    cv::resize(left_src, leftResized, config.imageSize);
-    cv::resize(right_src, rightResized, config.imageSize);
-} else {
-    left_src.copyTo(leftResized);
-    right_src.copyTo(rightResized);
-}
+        std::cerr << "Idk man" << " : " << left_src.size();
+    }
+    // std::cerr << "Warning: Resizing input images to match calibration size (" << config.imageSize << ")." << std::endl;
+    // cv::resize(left_src, leftResized, config.imageSize);
+    // cv::resize(right_src, rightResized, config.imageSize);
+    // } else {
+    //     left_src.copyTo(leftResized);
+    //     right_src.copyTo(rightResized);
+    // }
 
 
-    cv::remap(leftResized,   left_dst, mapL1, mapL2, cv::INTER_LINEAR);
-    cv::remap(rightResized, right_dst, mapR1, mapR2, cv::INTER_LINEAR);
-    std::cout << "Images rectified successfully!" << std::endl;
+    cv::remap(left_src,   left_dst, mapL1, mapL2, cv::INTER_LINEAR);
+    cv::remap(right_src, right_dst, mapR1, mapR2, cv::INTER_LINEAR);
 }
 
 
@@ -95,7 +99,3 @@ bool StereoRectifier::run_rectification() {
     }
     return true;
 }
-
-
-const cv::Size &StereoRectifier::getImageSize() const noexcept { return config.imageSize; }
-const cv::Mat  &StereoRectifier::getQ() const noexcept { return config.Q; }

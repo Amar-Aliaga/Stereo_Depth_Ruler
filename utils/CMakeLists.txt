@@ -1,12 +1,24 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.10)
+project(utils)
+
 
 find_package(OpenCV REQUIRED)
+find_package(PCL 1.8 REQUIRED COMPONENTS common io visualization)
 
-file(GLOB SRC_FILES src/*.cpp)
-file(GLOB HEADER_FILES include/*.hpp)
+set(SRC_FILES
+    src/utils.cpp
+)
 
-add_library(utils ${SRC_FILES} ${HEADER_FILES})
+set(HEADER_FILES
+    include/utils.hpp
+)
 
-target_include_directories(utils PUBLIC include ${OpenCV_INCLUDE_DIRS})
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories   (${PCL_LIBRARY_DIRS})
+add_definitions    (${PCL_DEFINITIONS})
 
-target_link_libraries(utils PUBLIC ${OpenCV_LIBS} stereo_vision)
+add_library(utils STATIC ${SRC_FILES} ${HEADER_FILES})
+
+target_include_directories(utils PUBLIC ${OpenCV_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+target_link_libraries(utils PUBLIC ${PCL_LIBRARIES} ${OpenCV_LIBS} stereo_vision point_cloud)
