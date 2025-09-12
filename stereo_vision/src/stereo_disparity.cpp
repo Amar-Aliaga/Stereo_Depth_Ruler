@@ -64,7 +64,7 @@ cv::Mat StereoDisparity::show_disparityMap(const cv::Mat &disparity) {
     cv::Mat working_disp = disparity.clone();
     
     if (!prev_vis.empty() && prev_vis.size() == show_disp.size()) {
-        const float alpha = 0.49f; 
+        const float alpha = 0.63f; 
         cv::addWeighted(prev_vis, alpha, show_disp, 1 - alpha, 0, show_disp);
     }
     prev_vis = show_disp.clone();
@@ -114,7 +114,7 @@ cv::Mat StereoDisparity::show_depthMap(const cv::Mat &disparity) {
     cv::applyColorMap(depth8u, depth_vis8u, cv::COLORMAP_TURBO);
 
     if (!prev_depth_vis.empty() && prev_depth_vis.size() == depth_vis8u.size()) {
-        const float vis_alpha = 0.49f;
+        const float vis_alpha = 0.63f;
         cv::addWeighted(prev_depth_vis, vis_alpha, depth_vis8u, 1.0f - vis_alpha, 0, depth_vis8u);
     }
     

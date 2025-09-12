@@ -36,8 +36,10 @@ typedef pcl::PointCloud<PointT> PointCloudT;
 
 static std::vector<cv::Point> clicked_points;
 
-void onMouseMeasure(int event, int x, int y, int, void *user_data) {
-    if (event != cv::EVENT_LBUTTONDOWN) return; 
+//event == cv::EVENT_LBUTTONDOWN && !(flags & cv::EVENT_FLAG_SHIFTKEY)
+
+void onMouseMeasure(int event, int x, int y, int flags, void *user_data) {
+    if (!(flags & cv::EVENT_FLAG_SHIFTKEY) && event != cv::EVENT_LBUTTONDOWN) return; 
     MouseMat *disp = static_cast<MouseMat*>(user_data);
     if(!disp || !disp->raw_map || !disp->dis_map) return;
 
@@ -47,13 +49,17 @@ void onMouseMeasure(int event, int x, int y, int, void *user_data) {
     if (x < 0 || x >= rawMap->cols || y < 0 || y >= rawMap->rows) return;
     
     clicked_points.push_back(cv::Point(x, y));
+
     if (clicked_points.size() == 2) {
-        cv::Vec3f xyz1 = rawMap->at<cv::Vec3f>(clicked_points[0]);
-        cv::Vec3f xyz2 = rawMap->at<cv::Vec3f>(clicked_points[1]);
-        cv::line(*disMap, clicked_points[0], clicked_points[1], cv::Scalar(0, 0 ,255), 2);
-        cv::imshow("Depth Map", *disMap);
+        cv::Vec3f xyz1 = rawMap->at<cv::Vec3f>(clicked_points[0].y, clicked_points[0].x);
+        cv::circle(*disMap, clicked_points[0], 5, cv::Scalar(0,0,255), -1);
+        cv::Vec3f xyz2 = rawMap->at<cv::Vec3f>(clicked_points[1].y, clicked_points[1].x);
+        cv::circle(*disMap, clicked_points[1], 5, cv::Scalar(0,0,255), -1);
+
+        cv::line(*disMap, clicked_points[0], clicked_points[1], cv::Scalar(77, 211 ,187), 1);
+        cv::imshow("Left: rectified image + disparity overlay", *disMap);
         double dist = cv::norm(xyz1 - xyz2);
-        std::cout << "Distance: " << dist << " mm" << std::endl;
+        std::cout << "Distance: " << dist/10 << " cm" << std::endl;
         clicked_points.clear();
     }
 }
@@ -351,6 +357,7 @@ void zed_footage() {
 //     }
 // }
 
+cv::Mat stored_frame;
 
 void live_disparity_map() {
     const std::string &s {"/home/amar-aliaga/Desktop/my_video/output.mp4"};
@@ -379,7 +386,6 @@ void live_disparity_map() {
     std::cout << "Res: " << w << "x" << h << std::endl;
 
     bool paused = false;
-    cv::Mat stored_frame;
 
     while (true) {
         cv::Mat frame;
@@ -403,37 +409,41 @@ void live_disparity_map() {
         rectifier.rectify(left_raw, right_raw, left_rect, right_rect);
         
         cv::Mat disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
-        cv::Mat depth_map = disparity_computer.computeDepth(disp_float);
+        cv::Mat depth_map  = disparity_computer.computeDepth(disp_float);
 
         cv::Mat display_disparity = disparity_computer.show_disparityMap(disp_float);
-        cv::Mat display_depth = disparity_computer.show_depthMap(depth_map);
+        cv::Mat display_depth     = disparity_computer.show_depthMap(depth_map);
 
         cv::Mat disparity_heatmap;
         cv::applyColorMap(display_disparity, disparity_heatmap, cv::COLORMAP_JET);
 
-        cv::resize(disparity_heatmap, disparity_heatmap, left_rect.size());
+        cv::resize(disparity_heatmap, disparity_heatmap, display_depth.size());
+        cv::resize(left_rect, left_rect, cv::Size(), 0.5, 0.5, cv::INTER_AREA);
 
         cv::Mat overlay;
         cv::addWeighted(left_rect, 0.7, disparity_heatmap, 0.3, 0, overlay);
 
         MouseMat mouse_data;
         mouse_data.raw_map = &depth_map;
-        mouse_data.dis_map = &display_depth;
+        mouse_data.dis_map = &overlay;
 
-
-        // cv::imshow("Left Rectified", left_raw);
-        // cv::imshow("Right Rectified", right_raw);
-        // cv::imshow("Disparity Map", display_disparity);
         cv::imshow("Depth Map", display_depth);
-
         cv::imshow("Left: rectified image + disparity overlay", overlay);
-        cv::setMouseCallback("Depth Map", onMouseMeasure, &mouse_data);
+        cv::setMouseCallback("Left: rectified image + disparity overlay", onMouseMeasure, &mouse_data);
 
         int key = cv::waitKey(1);
         if (key == 27) {
             break;
         }else if (key == 102 || key == 70) {
             paused = !paused;
+        }
+        else if (key == 115 || key == 83) {
+            if(overlay.empty()) {
+                std::cerr << "Image has not been save!" << std::endl;
+                continue;
+            }
+            cv::imwrite("/home/amar-aliaga/overlay_image1.jpg", overlay);
+            std::cout << "Image has been saved to /home/amar-aliaga/overlay_image1.jpg" << std::endl;
         }
     }
 }

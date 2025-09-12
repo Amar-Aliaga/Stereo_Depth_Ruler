@@ -20,6 +20,9 @@ void StereoRectifier::rectify(const cv::Mat &left_src, const cv::Mat &right_src,
         return;
     }
 
+    left_src.size()  = cv::Size(1280, 720);
+    right_src.size() = cv::Size(1280, 720);
+
     //cv::Mat leftResized, rightResized;
     if (left_src.size() != config.imageSize || right_src.size() != config.imageSize) {
         std::cerr << "Idk man" << " : " << left_src.size();
