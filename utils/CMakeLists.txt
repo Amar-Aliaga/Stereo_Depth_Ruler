@@ -7,10 +7,12 @@ find_package(PCL 1.8 REQUIRED COMPONENTS common io visualization)
 
 set(SRC_FILES
     src/utils.cpp
+    src/helper.cpp
 )
 
 set(HEADER_FILES
     include/utils.hpp
+    include/helper.hpp
 )
 
 include_directories(${PCL_INCLUDE_DIRS})

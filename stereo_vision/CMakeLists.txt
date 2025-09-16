@@ -8,6 +8,7 @@ set(SRC_FILES
     src/stereo_rectifier.cpp
     src/stereo_disparity.cpp
     src/stereo_calibrator.cpp
+    src/stereo_displayer.cpp
 )
 
 set(HEADER_FILES
@@ -15,6 +16,7 @@ set(HEADER_FILES
     include/stereo_rectifier.hpp
     include/stereo_disparity.hpp
     include/stereo_calibrator.hpp
+    include/stereo_displayer.hpp
 )
 
 add_library(stereo_vision ${SRC_FILES} ${HEADER_FILES})
