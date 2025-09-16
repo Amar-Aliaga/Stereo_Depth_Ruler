@@ -40,12 +40,24 @@ void StereoDisplayer::onMouseMeasure(int event, int x, int y, int flags, void *u
     if (clicked_points.size() == 2) {
         cv::Vec3f xyz1 = rawMap->at<cv::Vec3f>(clicked_points[0].y, clicked_points[0].x);
         cv::Vec3f xyz2 = rawMap->at<cv::Vec3f>(clicked_points[1].y, clicked_points[1].x);
+
         cv::line(*disMap, clicked_points[0], clicked_points[1], cv::Scalar(255, 255 ,0), 1.53);
         cv::imshow("Paused Image", *disMap);
+
         dist = cv::norm(xyz1 - xyz2);
+
         points_history.push_back(std::make_pair(clicked_points[0], clicked_points[1]));
         dist_vector.push_back(dist);
-        std::cout << "Distance: " << dist/10 << " cm" << std::endl;
+
+        measurement_record.push_back({current_image_index, clicked_points[0], clicked_points[1], dist});
+
+        std::cout << "Image: "    << current_image_index << std::endl;
+        std::cout << "Point 1: "  << clicked_points[0]   << std::endl;
+        std::cout << "Point 2: "  << clicked_points[1]   << std::endl;
+        std::cout << "Distance: " << dist/10 << " cm"    << std::endl;
+
+        std::cout << std::endl;
+
         clicked_points.clear();
     }
 }
@@ -61,22 +73,24 @@ void StereoDisplayer::MouseCallbackWrapper(int event, int x, int y, int flags, v
 
 void StereoDisplayer::save_csvFile() {
     size_t i{0}, j{0};
-        std::ofstream csvFile("/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/results/measurements.csv");
+        std::ofstream csvFile("/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/results/measurements.csv", std::ios::app);
         if(!csvFile.is_open()) {
             std::cerr << "Failed to create CSV file!" << std::endl;
             return;
         }
-        csvFile << std::right << "First_point, " << std::setw(4) << "  Second_point, " << std::setw(4) << "Distance\n";
+        csvFile << std::right << "Image, " << "First_point, " << std::setw(4) << "  Second_point, " << std::setw(4) << "Distance\n";
         csvFile << std::fixed << std::setprecision(5);
 
         while(i < points_history.size() && j < dist_vector.size()) {
-            std::cout << "First point: " << points_history[i].first << std::endl;
-            std::cout << "Second point: " << points_history[i].second << std::endl;
-            std::cout << "Distance: " << dist_vector[j] / 10 << "cm" << std::endl;
+            // std::cout << "First point: " << points_history[i].first << std::endl;
+            // std::cout << "Second point: " << points_history[i].second << std::endl;
+            // std::cout << "Distance: " << dist_vector[j] / 10 << "cm" << std::endl;
 
-            csvFile << std::right << points_history[i].first << ", " << std::setw(4)
-                    << points_history[i].second << ", " << std::setw(6)
-                    << dist_vector[j]/10 <<  " cm" << std::setw(4)  << "\n";
+            std::cout << std::endl;
+
+            csvFile << std::right <<measurement_record[i].image_index << ", " << measurement_record[i].point1 << ", " << std::setw(4)
+                    << measurement_record[i].point2 << ", " << std::setw(6)
+                    << measurement_record[i].distance/10<<  " cm" << std::setw(4)  << "\n";
             i++;
             j++;
         }
@@ -158,10 +172,13 @@ void StereoDisplayer::show_disparity_overlay() {
 
         cv::addWeighted(left_rect, 0.7, disparity_heatmap, 0.3, 0, overlay);
 
+
         cv::imshow("Left Rectified", left_rect);
         cv::moveWindow("Left Rectified", 2200, 300);
+
         cv::imshow("Depth Map", display_depth);
         cv::moveWindow("Depth Map", 3100, 300);
+
         cv::imshow("Left: rectified image + disparity overlay", overlay);
         cv::moveWindow("Left: rectified image + disparity overlay", 2200, 400 + left_rect.rows);
 
@@ -176,9 +193,6 @@ void StereoDisplayer::show_disparity_overlay() {
                 cv::imshow("Paused Image", frozen);
                 cv::moveWindow("Paused Image", 3100, 400 + left_rect.rows);
                 test_mouse(depth_map);
-                break;
-            default: 
-                std::cout << "Press either Esc or f." << std::endl;
                 break;
         }
     }
@@ -212,7 +226,18 @@ void StereoDisplayer::test_mouse(const cv::Mat &depth_map) {
             clicked_points.clear();
             points_history.clear();
             dist_vector.clear();
-            std::cout << "The values have been rested." << std::endl;
+            std::cout << "The values have been reseted." << std::endl;
+
+            mouse_data.dis_map = std::make_shared<cv::Mat>(frozen.clone());
+            this->mouse_data = mouse_data;
+            cv::imshow("Paused Image", *mouse_data.dis_map);
+        } else if(key == 110) { 
+            clicked_points.clear();
+            points_history.clear();
+            dist_vector.clear();
+            measurement_record.clear(); 
+            current_image_index++;     
+            std::cout << "Started new measurement session (Image index: " << current_image_index << ")." << std::endl;
 
             mouse_data.dis_map = std::make_shared<cv::Mat>(frozen.clone());
             this->mouse_data = mouse_data;
