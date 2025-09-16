@@ -33,13 +33,14 @@ void StereoDisplayer::onMouseMeasure(int event, int x, int y, int flags, void *u
     
     clicked_points.push_back(cv::Point(x, y));
 
-    cv::circle(*disMap, clicked_points[0], 3.7, cv::Scalar(0,0,255), -1);
-    cv::circle(*disMap, clicked_points[1], 3.7, cv::Scalar(0,0,255), -1);
+    cv::circle(*disMap, clicked_points[0], 3.71, cv::Scalar(0,0,255), -1);
+    cv::circle(*disMap, clicked_points[1], 3.71, cv::Scalar(0,0,255), -1);
+    cv::imshow("Paused Image", *disMap);
 
     if (clicked_points.size() == 2) {
         cv::Vec3f xyz1 = rawMap->at<cv::Vec3f>(clicked_points[0].y, clicked_points[0].x);
         cv::Vec3f xyz2 = rawMap->at<cv::Vec3f>(clicked_points[1].y, clicked_points[1].x);
-        cv::line(*disMap, clicked_points[0], clicked_points[1], cv::Scalar(77, 211 ,187), 1);
+        cv::line(*disMap, clicked_points[0], clicked_points[1], cv::Scalar(255, 255 ,0), 1.53);
         cv::imshow("Paused Image", *disMap);
         dist = cv::norm(xyz1 - xyz2);
         points_history.push_back(std::make_pair(clicked_points[0], clicked_points[1]));
@@ -156,12 +157,15 @@ void StereoDisplayer::show_disparity_overlay() {
         cv::resize(left_rect, left_rect, cv::Size(), 0.5, 0.5, cv::INTER_AREA);
 
         cv::addWeighted(left_rect, 0.7, disparity_heatmap, 0.3, 0, overlay);
-        
-        cv::imshow("Depth Map", display_depth);
-        cv::imshow("Left: rectified image + disparity overlay", overlay);
 
-        cv::setMouseCallback("Left: rectified image + disparity overlay", 
-                           StereoDisplayer::MouseCallbackWrapper, this);
+        cv::imshow("Left Rectified", left_rect);
+        cv::moveWindow("Left Rectified", 2200, 300);
+        cv::imshow("Depth Map", display_depth);
+        cv::moveWindow("Depth Map", 3100, 300);
+        cv::imshow("Left: rectified image + disparity overlay", overlay);
+        cv::moveWindow("Left: rectified image + disparity overlay", 2200, 400 + left_rect.rows);
+
+        depth_coverage(depth_map);
 
         int key = cv::waitKey(1);
         switch(key) {
@@ -170,18 +174,12 @@ void StereoDisplayer::show_disparity_overlay() {
             case 102:
                 frozen = overlay.clone();
                 cv::imshow("Paused Image", frozen);
+                cv::moveWindow("Paused Image", 3100, 400 + left_rect.rows);
                 test_mouse(depth_map);
                 break;
-            case 115:
-                std::cout << "hello" << std::endl;
-                save_csvFile();
-                std::cout << "Image has been saved." << std::endl;
+            default: 
+                std::cout << "Press either Esc or f." << std::endl;
                 break;
-            case 114:
-                std::cout << "reset" << std::endl;
-                break;
-            case 110:
-                std::cout << "new" << std::endl;
         }
     }
 }
@@ -202,13 +200,23 @@ void StereoDisplayer::test_mouse(const cv::Mat &depth_map) {
     cv::imshow("Paused Image", *mouse_data.dis_map);
     cv::setMouseCallback("Paused Image", StereoDisplayer::MouseCallbackWrapper, this);
 
-    std::cout << "Click two points in the 'Frozen' window to measure distance. Press Esc to exit.\n";
-
     while (true) {
         int key = cv::waitKey(1);
         if (key == 102 || key == 70) break;
         else if(key == 97 || key == 65) {
             return;
+        } else if(key == 115) {
+            save_csvFile();
+            std::cout << "File has been saved." << std::endl;
+        } else if(key == 114) {
+            clicked_points.clear();
+            points_history.clear();
+            dist_vector.clear();
+            std::cout << "The values have been rested." << std::endl;
+
+            mouse_data.dis_map = std::make_shared<cv::Mat>(frozen.clone());
+            this->mouse_data = mouse_data;
+            cv::imshow("Paused Image", *mouse_data.dis_map);
         }
     }
     cv::destroyWindow("Paused Image");
