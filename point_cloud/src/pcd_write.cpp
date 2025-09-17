@@ -1,14 +1,32 @@
 #include "pcd_write.hpp"
+#include "stereo_displayer.hpp"
+#include "stereo_calibrator.hpp"
+#include "stereo_disparity.hpp"
+#include "stereo_rectifier.hpp"
+#include "stereo_configuration.hpp"
 
 #include <opencv2/opencv.hpp>
+#include <opencv2/ximgproc.hpp>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/io/pcd_io.h> 
-#include <pcl/common/io.h>
-#include <cmath>     
+#include <pcl/common/io.h>   
+#include <pcl/visualization/cloud_viewer.h>
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <filesystem>
+#include <limits>
+#include <iomanip>
+#include <utility>
+#include <cmath>
+#include <memory>
+#include <fstream>
 #include <limits>
 
-// Define a shortcut for the type to avoid typing this every time
+
+
 typedef pcl::PointXYZRGB PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
 
@@ -18,6 +36,8 @@ typedef pcl::PointCloud<PointT> PointCloudT;
  * @param colorImage_CV Input OpenCV Mat (CV_8UC3) for color, must be same size as pointCloud_CV. If empty, no color is added.
  * @return A shared pointer to the created PCL PointCloud.
  */
+
+
 PointCloudT::Ptr convertCVMatToPCL(const cv::Mat& pointCloud_CV, const cv::Mat& colorImage_CV) {
     // Create the PCL point cloud object
     PointCloudT::Ptr cloud(new PointCloudT);
@@ -67,4 +87,99 @@ PointCloudT::Ptr convertCVMatToPCL(const cv::Mat& pointCloud_CV, const cv::Mat& 
         }
     }
     return cloud;
+}
+
+
+void save_as_binary() {
+    StereoConfiguration config;
+    std::string video_path = "/home/amar-aliaga/Desktop/my_video/output.mp4";
+    int target_frame = 100; 
+
+    // Open video
+    cv::VideoCapture cap(video_path);
+    if (!cap.isOpened()) {
+        std::cerr << "Could not open video: " << video_path << std::endl;
+        return;
+    }
+
+    // Grab left and right frames (for demonstration, we use consecutive frames)
+    cv::Mat left, right;
+    for (int i = 0; i <= target_frame; ++i) {
+        cap >> left;
+        if (left.empty()) {
+            std::cerr << "Could not read frame " << i << std::endl;
+            return;
+        }
+    }
+    cap >> right;
+    if (right.empty()) {
+        std::cerr << "Could not read right frame." << std::endl;
+        return;
+    }
+
+    // Convert to grayscale if needed
+    cv::Mat left_gray, right_gray;
+    cv::cvtColor(left, left_gray, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(right, right_gray, cv::COLOR_BGR2GRAY);
+
+    // Load Q matrix (from calibration)
+    cv::FileStorage fs("/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/config/stereo.yaml", cv::FileStorage::READ);
+    cv::Mat Q;
+    fs["Q"] >> Q;
+    fs.release();
+    if (Q.empty()) {
+        std::cerr << "Could not load Q matrix from config/stereo.yaml" << std::endl;
+        return;
+    }
+
+    // Compute disparity (replace with your real stereo pipeline!)
+    cv::Ptr<cv::StereoSGBM> sgbm = cv::StereoSGBM::create(0, 128, 5);
+    cv::Mat disp, disp_float;
+    sgbm->compute(left_gray, right_gray, disp);
+    disp.convertTo(disp_float, CV_32F, 1.0 / 16.0);
+
+    // Reproject to 3D
+    cv::Mat pointCloud_CV;
+    cv::reprojectImageTo3D(disp_float, pointCloud_CV, Q, true);
+
+    // Convert to PCL and save
+    PointCloudT::Ptr pcl_cloud = convertCVMatToPCL(pointCloud_CV, left); // Use left image for color
+
+    if (pcl_cloud->points.size() > 0) {
+        pcl::io::savePCDFileBinary("/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/results/frame_xxxxx.pcd", *pcl_cloud);
+        std::cout << "Saved point cloud to results/frame_xxxxx.pcd" << std::endl;
+    } else {
+        std::cerr << "No points to save!" << std::endl;
+        return;
+    }
+}
+
+
+
+void view_pcd(const std::string& filename) {
+    typedef pcl::PointXYZRGB PointT;
+    typedef pcl::PointCloud<PointT> PointCloudT;
+
+    PointCloudT::Ptr cloud(new PointCloudT);
+    if (pcl::io::loadPCDFile<PointT>(filename, *cloud) == -1) {
+        std::cerr << "Couldn't read file " << filename << std::endl;
+        return;
+    }
+    std::cout << "Loaded " << cloud->points.size() << " points from " << filename << std::endl;
+
+    pcl::visualization::CloudViewer viewer("PCD Viewer");
+    viewer.showCloud(cloud);
+
+    while (!viewer.wasStopped()) {
+    }
+}
+
+
+int main() {
+    save_as_binary();
+
+    // Now display the saved PCD file
+    view_pcd("/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/results/frame_xxxxx.pcd");
+
+    return 0;
 }

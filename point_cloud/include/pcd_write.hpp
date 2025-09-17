@@ -11,3 +11,5 @@ typedef pcl::PointCloud<PointT> PointCloudT;
 
 
 PointCloudT::Ptr convertCVMatToPCL(const cv::Mat& pointCloud_CV, const cv::Mat& colorImage_CV = cv::Mat());
+void save_as_binary();
+void view_pcd(const std::string& filename);

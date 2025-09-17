@@ -1,7 +1,8 @@
 project(point_cloud)
 
 find_package(OpenCV REQUIRED)
-find_package(PCL 1.14 REQUIRED COMPONENTS common io)
+find_package(PCL 1.14 REQUIRED COMPONENTS common io visualization)
+find_package(OpenCV REQUIRED ximgproc)
 
 add_executable(point_cloud src/pcd_write.cpp)
 
@@ -16,4 +17,4 @@ add_definitions(${PCL_DEFINITIONS})
 
 target_include_directories(point_cloud PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-target_link_libraries(point_cloud ${OpenCV_LIBS} ${PCL_LIBRARIES})
+target_link_libraries(point_cloud ${OpenCV_LIBS} ${PCL_LIBRARIES} stereo_vision)
