@@ -33,18 +33,31 @@ void StereoDisplayer::onMouseMeasure(int event, int x, int y, int flags, void *u
     
     clicked_points.push_back(cv::Point(x, y));
 
-    cv::circle(*disMap, clicked_points[0], 3.7, cv::Scalar(0,0,255), -1);
-    cv::circle(*disMap, clicked_points[1], 3.7, cv::Scalar(0,0,255), -1);
+    cv::circle(*disMap, clicked_points[0], 3.71, cv::Scalar(0,0,255), -1);
+    cv::circle(*disMap, clicked_points[1], 3.71, cv::Scalar(0,0,255), -1);
+    cv::imshow("Paused Image", *disMap);
 
     if (clicked_points.size() == 2) {
         cv::Vec3f xyz1 = rawMap->at<cv::Vec3f>(clicked_points[0].y, clicked_points[0].x);
         cv::Vec3f xyz2 = rawMap->at<cv::Vec3f>(clicked_points[1].y, clicked_points[1].x);
-        cv::line(*disMap, clicked_points[0], clicked_points[1], cv::Scalar(77, 211 ,187), 1);
+
+        cv::line(*disMap, clicked_points[0], clicked_points[1], cv::Scalar(255, 255 ,0), 1.53);
         cv::imshow("Paused Image", *disMap);
+
         dist = cv::norm(xyz1 - xyz2);
+
         points_history.push_back(std::make_pair(clicked_points[0], clicked_points[1]));
         dist_vector.push_back(dist);
-        std::cout << "Distance: " << dist/10 << " cm" << std::endl;
+
+        measurement_record.push_back({current_image_index, clicked_points[0], clicked_points[1], dist});
+
+        std::cout << "Image: "    << current_image_index << std::endl;
+        std::cout << "Point 1: "  << clicked_points[0]   << std::endl;
+        std::cout << "Point 2: "  << clicked_points[1]   << std::endl;
+        std::cout << "Distance: " << dist/10 << " cm"    << std::endl;
+
+        std::cout << std::endl;
+
         clicked_points.clear();
     }
 }
@@ -60,22 +73,24 @@ void StereoDisplayer::MouseCallbackWrapper(int event, int x, int y, int flags, v
 
 void StereoDisplayer::save_csvFile() {
     size_t i{0}, j{0};
-        std::ofstream csvFile("/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/results/measurements.csv");
+        std::ofstream csvFile("/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/results/measurements.csv", std::ios::app);
         if(!csvFile.is_open()) {
             std::cerr << "Failed to create CSV file!" << std::endl;
             return;
         }
-        csvFile << std::right << "First_point, " << std::setw(4) << "  Second_point, " << std::setw(4) << "Distance\n";
+        csvFile << std::right << "Image, " << "First_point, " << std::setw(4) << "  Second_point, " << std::setw(4) << "Distance\n";
         csvFile << std::fixed << std::setprecision(5);
 
         while(i < points_history.size() && j < dist_vector.size()) {
-            std::cout << "First point: " << points_history[i].first << std::endl;
-            std::cout << "Second point: " << points_history[i].second << std::endl;
-            std::cout << "Distance: " << dist_vector[j] / 10 << "cm" << std::endl;
+            // std::cout << "First point: " << points_history[i].first << std::endl;
+            // std::cout << "Second point: " << points_history[i].second << std::endl;
+            // std::cout << "Distance: " << dist_vector[j] / 10 << "cm" << std::endl;
 
-            csvFile << std::right << points_history[i].first << ", " << std::setw(4)
-                    << points_history[i].second << ", " << std::setw(6)
-                    << dist_vector[j]/10 <<  " cm" << std::setw(4)  << "\n";
+            std::cout << std::endl;
+
+            csvFile << std::right <<measurement_record[i].image_index << ", " << measurement_record[i].point1 << ", " << std::setw(4)
+                    << measurement_record[i].point2 << ", " << std::setw(6)
+                    << measurement_record[i].distance/10<<  " cm" << std::setw(4)  << "\n";
             i++;
             j++;
         }
@@ -88,10 +103,10 @@ void StereoDisplayer::save_csvFile() {
 
 
 void StereoDisplayer::depth_coverage(const cv::Mat &mat) {
-    int counter {0};
+    int counter {0}, num_dis{80};
     const int total_pixels = mat.rows * mat.cols;
     for(int i = 0; i<mat.rows; ++i) {
-        for(int j = 0; j<mat.cols; ++j) {
+        for(int j = num_dis; j<mat.cols; ++j) {
             cv::Vec3f conf_pixel = mat.at<cv::Vec3f>(i, j);
             if(conf_pixel[2] >= 0.0 && conf_pixel[2] <= 12000.0 && !std::isnan(conf_pixel[2])) { // && conf_pixel[2] <= 1.0
                 counter++;
@@ -104,8 +119,8 @@ void StereoDisplayer::depth_coverage(const cv::Mat &mat) {
 
 
 void StereoDisplayer::show_disparity_overlay() {
-    const std::string &s {"/home/amar-aliaga/Desktop/my_video/output.mp4"};
-    const std::string &v {"/home/amar-aliaga/Downloads/cam.mp4"};
+    const std::string &s {"assets/output.mp4"};
+    const std::string &v {"assets/cam.mp4"};
 
     if (!config.loadFromFile("config/stereo.yaml")) {
         std::cerr << "Error: Could not load configuration file." << std::endl;
@@ -156,12 +171,18 @@ void StereoDisplayer::show_disparity_overlay() {
         cv::resize(left_rect, left_rect, cv::Size(), 0.5, 0.5, cv::INTER_AREA);
 
         cv::addWeighted(left_rect, 0.7, disparity_heatmap, 0.3, 0, overlay);
-        
-        cv::imshow("Depth Map", display_depth);
-        cv::imshow("Left: rectified image + disparity overlay", overlay);
 
-        cv::setMouseCallback("Left: rectified image + disparity overlay", 
-                           StereoDisplayer::MouseCallbackWrapper, this);
+
+        cv::imshow("Left Rectified", left_rect);
+        cv::moveWindow("Left Rectified", 2200, 300);
+
+        cv::imshow("Depth Map", display_depth);
+        cv::moveWindow("Depth Map", 3100, 300);
+
+        cv::imshow("Left: rectified image + disparity overlay", overlay);
+        cv::moveWindow("Left: rectified image + disparity overlay", 2200, 400 + left_rect.rows);
+
+        depth_coverage(depth_map);
 
         int key = cv::waitKey(1);
         switch(key) {
@@ -170,18 +191,9 @@ void StereoDisplayer::show_disparity_overlay() {
             case 102:
                 frozen = overlay.clone();
                 cv::imshow("Paused Image", frozen);
+                cv::moveWindow("Paused Image", 3100, 400 + left_rect.rows);
                 test_mouse(depth_map);
                 break;
-            case 115:
-                std::cout << "hello" << std::endl;
-                save_csvFile();
-                std::cout << "Image has been saved." << std::endl;
-                break;
-            case 114:
-                std::cout << "reset" << std::endl;
-                break;
-            case 110:
-                std::cout << "new" << std::endl;
         }
     }
 }
@@ -202,13 +214,36 @@ void StereoDisplayer::test_mouse(const cv::Mat &depth_map) {
     cv::imshow("Paused Image", *mouse_data.dis_map);
     cv::setMouseCallback("Paused Image", StereoDisplayer::MouseCallbackWrapper, this);
 
-    std::cout << "Click two points in the 'Frozen' window to measure distance. Press Esc to exit.\n";
-
     while (true) {
         int key = cv::waitKey(1);
         if (key == 102 || key == 70) break;
         else if(key == 97 || key == 65) {
             return;
+        } else if(key == 115) {
+            save_csvFile();
+            std::cout << "File has been saved." << std::endl;
+        } else if(key == 114) {
+            clicked_points.clear();
+            points_history.clear();
+            dist_vector.clear();
+
+            std::ofstream csvFile("/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/results/measurements.csv");
+            csvFile.close();
+
+            mouse_data.dis_map = std::make_shared<cv::Mat>(frozen.clone());
+            this->mouse_data = mouse_data;
+            cv::imshow("Paused Image", *mouse_data.dis_map);
+        } else if(key == 110) { 
+            clicked_points.clear();
+            points_history.clear();
+            dist_vector.clear();
+            measurement_record.clear(); 
+            current_image_index++;     
+            std::cout << "Started new measurement session (Image index: " << current_image_index << ")." << std::endl;
+
+            mouse_data.dis_map = std::make_shared<cv::Mat>(frozen.clone());
+            this->mouse_data = mouse_data;
+            cv::imshow("Paused Image", *mouse_data.dis_map);
         }
     }
     cv::destroyWindow("Paused Image");

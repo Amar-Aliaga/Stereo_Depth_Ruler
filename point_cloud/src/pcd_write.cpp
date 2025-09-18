@@ -1,70 +1,160 @@
-#include "pcd_write.hpp"
-
 #include <opencv2/opencv.hpp>
+#include <opencv2/ximgproc.hpp>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
-#include <pcl/io/pcd_io.h> 
-#include <pcl/common/io.h>
-#include <cmath>     
+#include <pcl/io/pcd_io.h>
+#include <pcl/visualization/cloud_viewer.h>
+#include <pcl/filters/voxel_grid.h>
+#include <iostream>
 #include <limits>
+#include <string>
+#include <iomanip> // For std::setw and std::setfill
 
-// Define a shortcut for the type to avoid typing this every time
 typedef pcl::PointXYZRGB PointT;
 typedef pcl::PointCloud<PointT> PointCloudT;
 
-/**
- * Converts an OpenCV 3D Point Cloud Mat and an optional color Mat to a PCL PointCloud.
- * @param pointCloud_CV Input OpenCV Mat (CV_32FC3) from reprojectImageTo3D
- * @param colorImage_CV Input OpenCV Mat (CV_8UC3) for color, must be same size as pointCloud_CV. If empty, no color is added.
- * @return A shared pointer to the created PCL PointCloud.
- */
+// Convert OpenCV 3D point cloud and color image to PCL PointCloud
 PointCloudT::Ptr convertCVMatToPCL(const cv::Mat& pointCloud_CV, const cv::Mat& colorImage_CV) {
-    // Create the PCL point cloud object
     PointCloudT::Ptr cloud(new PointCloudT);
 
-    // Check if the input point cloud is valid and organized
     if (pointCloud_CV.empty() || pointCloud_CV.type() != CV_32FC3) {
         std::cerr << "ERROR: Input point cloud is empty or not of type CV_32FC3." << std::endl;
         return cloud;
     }
 
     bool hasColor = !colorImage_CV.empty() && colorImage_CV.size() == pointCloud_CV.size();
-
-    // Set the PCL cloud to be organized (same width and height as the image)
     cloud->width = pointCloud_CV.cols;
     cloud->height = pointCloud_CV.rows;
-    cloud->is_dense = false; // Because it will have NaN/inf points we need to filter
+    cloud->is_dense = false;
     cloud->points.resize(cloud->width * cloud->height);
 
-    // Iterate through every pixel in the point cloud
-    for (int v = 0; v < pointCloud_CV.rows; ++v) {       // y coordinate
-        for (int u = 0; u < pointCloud_CV.cols; ++u) {   // x coordinate
-
-            // Get the 3D point from the OpenCV Mat
+    for (int v = 0; v < pointCloud_CV.rows; ++v) {
+        for (int u = 0; u < pointCloud_CV.cols; ++u) {
             cv::Vec3f point = pointCloud_CV.at<cv::Vec3f>(v, u);
-            // Calculate the index for the PCL point cloud
             size_t index = v * pointCloud_CV.cols + u;
-
-            // Check if the point is valid (finite)
             if (std::isfinite(point[0]) && std::isfinite(point[1]) && std::isfinite(point[2])) {
-                // Set the coordinates
                 cloud->points[index].x = point[0];
                 cloud->points[index].y = point[1];
                 cloud->points[index].z = point[2];
-
-                // Set the color if available
                 if (hasColor) {
                     cv::Vec3b bgr = colorImage_CV.at<cv::Vec3b>(v, u);
-                    // PCL uses RGB stored in a uint32_t
-                    cloud->points[index].r = bgr[2]; // R from OpenCV's BGR
-                    cloud->points[index].g = bgr[1]; // G
-                    cloud->points[index].b = bgr[0]; // B
+                    cloud->points[index].r = bgr[2];
+                    cloud->points[index].g = bgr[1];
+                    cloud->points[index].b = bgr[0];
                 }
             } else {
-                // Set invalid points to NaN. PCL will ignore them if is_dense is false.
                 cloud->points[index].x = cloud->points[index].y = cloud->points[index].z = std::numeric_limits<float>::quiet_NaN();
             }
         }
     }
     return cloud;
+}
+
+void save_and_display_pointcloud() {
+    const std::string video_path1 = "/home/amar-aliaga/Downloads/cam.mp4";
+    const std::string Q_matrix_path = "/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/config/stereo.yaml";
+    const std::string output_dir = "/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/results/";
+    const int target_frame = 100;
+
+    cv::VideoCapture cap(video_path1);
+    if (!cap.isOpened()) {
+        std::cerr << "Could not open video: " << video_path1 << std::endl;
+        return;
+    }
+
+    // Read the target frame
+    cv::Mat frame;
+    for (int i = 0; i <= target_frame; ++i) {
+        cap >> frame;
+        if (frame.empty()) {
+            std::cerr << "Could not read frame " << i << std::endl;
+            return;
+        }
+    }
+
+    // Check that frame can be split
+    if (frame.cols % 2 != 0) {
+        std::cerr << "Frame width is not even; cannot split into left/right images." << std::endl;
+        return;
+    }
+
+    // Split the frame into left and right images
+    int width = frame.cols / 2;
+    cv::Mat left = frame(cv::Rect(0, 0, width, frame.rows)).clone();
+    cv::Mat right = frame(cv::Rect(width, 0, width, frame.rows)).clone();
+
+    // Convert to grayscale
+    cv::Mat left_gray, right_gray;
+    cv::cvtColor(left, left_gray, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(right, right_gray, cv::COLOR_BGR2GRAY);
+
+    // Load Q matrix
+    cv::FileStorage fs(Q_matrix_path, cv::FileStorage::READ);
+    cv::Mat Q;
+    fs["Q"] >> Q;
+    fs.release();
+    if (Q.empty()) {
+        std::cerr << "Could not load Q matrix from " << Q_matrix_path << std::endl;
+        return;
+    }
+
+    // Compute disparity using StereoSGBM
+    cv::Ptr<cv::StereoSGBM> sgbm = cv::StereoSGBM::create(
+        0, 80, 5,
+        8 * 5 * 5 * 3,
+        32 * 5 * 5 * 3,
+        1, 63, 12, 200, 2,
+        cv::StereoSGBM::MODE_SGBM_3WAY
+    );
+
+    cv::Mat disp, disp_float;
+    sgbm->compute(left_gray, right_gray, disp);
+    disp.convertTo(disp_float, CV_32F, 1.0 / 16.0);
+
+    // Reproject to 3D
+    cv::Mat pointCloud_CV;
+    cv::reprojectImageTo3D(disp_float, pointCloud_CV, Q, true);
+
+    // Convert to PCL and colorize with left image
+    PointCloudT::Ptr pcl_cloud = convertCVMatToPCL(pointCloud_CV, left);
+    std::cout << "Original points: " << pcl_cloud->size() << std::endl;
+
+    // Downsample with VoxelGrid (5 mm)
+    float voxel_size = 0.005f;
+    pcl::VoxelGrid<PointT> voxel_filter;
+    voxel_filter.setInputCloud(pcl_cloud);
+    voxel_filter.setLeafSize(voxel_size, voxel_size, voxel_size);
+
+    PointCloudT::Ptr cloud_filtered(new PointCloudT);
+    voxel_filter.filter(*cloud_filtered);
+    cloud_filtered->is_dense = false;
+
+    std::cout << "Filtered points: " << cloud_filtered->size() << std::endl;
+
+    // Format output path
+    std::stringstream ss;
+    ss << output_dir << "frame_" << std::setfill('0') << std::setw(5) << target_frame << ".pcd";
+    std::string out_path = ss.str();
+
+    // Save the downsampled point cloud
+    if (cloud_filtered->points.size() > 0) {
+        pcl::io::savePCDFileBinary(out_path, *cloud_filtered);
+        std::cout << "Saved downsampled point cloud to " << out_path << std::endl;
+    } else {
+        std::cerr << "No points to save after downsampling!" << std::endl;
+        return;
+    }
+
+    // Display the point cloud
+    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("PCD Viewer"));
+    viewer->setSize(800, 600); // Set window size to 800x600 pixels
+    viewer->addPointCloud<PointT>(cloud_filtered, "cloud");
+    while (!viewer->wasStopped()) {
+        viewer->spinOnce(100);
+    }
+}
+
+int main() {
+    save_and_display_pointcloud();
+    return 0;
 }
