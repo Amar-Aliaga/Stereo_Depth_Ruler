@@ -3,6 +3,10 @@ FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# ENV QT_QPA_PLATFORM=offscreen
+
+ENV XDG_RUNTIME_DIR=/tmp/runtime-root
+RUN mkdir -p /tmp/runtime-root && chmod 0700 /tmp/runtime-root
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -20,12 +24,9 @@ RUN apt-get update && \
 RUN apt-get update && \
     apt-get install -y wget lsb-release zstd
 
-COPY "/home/amar-aliaga/Desktop/my_video/output.mp4"
-
-
 RUN apt-get update && apt-get install -y wget lsb-release
 
-COPY ZED_SDK_Ubuntu24_cuda12.8_tensorrt10.9_v5.0.6.zstd.run /tmp/ZED_SDK.run
+COPY assets/ZED_SDK_Ubuntu24_cuda12.8_tensorrt10.9_v5.0.6.zstd.run /tmp/ZED_SDK.run
 
 RUN chmod +x /tmp/ZED_SDK.run && \
     /tmp/ZED_SDK.run -- silent && \
@@ -33,6 +34,7 @@ RUN chmod +x /tmp/ZED_SDK.run && \
 
 WORKDIR /app
 
+COPY assets/ /app/assets/
 
 COPY . .
 

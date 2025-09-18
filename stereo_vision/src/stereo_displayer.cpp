@@ -119,8 +119,8 @@ void StereoDisplayer::depth_coverage(const cv::Mat &mat) {
 
 
 void StereoDisplayer::show_disparity_overlay() {
-    const std::string &s {"/home/amar-aliaga/Desktop/my_video/output.mp4"};
-    const std::string &v {"/home/amar-aliaga/Downloads/cam.mp4"};
+    const std::string &s {"assets/output.mp4"};
+    const std::string &v {"assets/cam.mp4"};
 
     if (!config.loadFromFile("config/stereo.yaml")) {
         std::cerr << "Error: Could not load configuration file." << std::endl;
