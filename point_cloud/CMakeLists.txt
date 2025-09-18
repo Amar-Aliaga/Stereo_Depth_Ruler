@@ -1,7 +1,7 @@
 project(point_cloud)
 
 find_package(OpenCV REQUIRED)
-find_package(PCL 1.14 REQUIRED COMPONENTS common io visualization)
+find_package(PCL 1.14 REQUIRED COMPONENTS common io visualization filters)
 find_package(OpenCV REQUIRED ximgproc)
 
 add_executable(point_cloud src/pcd_write.cpp)

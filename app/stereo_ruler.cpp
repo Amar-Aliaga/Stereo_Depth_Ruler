@@ -4,7 +4,9 @@
 #include "stereo_rectifier.hpp"
 #include "stereo_disparity.hpp"
 #include "stereo_configuration.hpp"
+#include "stereo_displayer.hpp"
 #include "utils.hpp"
+#include "helper.hpp"
 #include <iostream>
 #include <vector>
 #include <string>
@@ -24,9 +26,13 @@ int main() {
     StereoRectifier rec(config);
     StereoDisparity disparity_computer(config.Q);
 
-    live_disparity_map();
+    //live_disparity_map();
     //image_disparity_measure("/home/amar-aliaga/rama_img.jpg");
 
+    //zed_footage();
+    StereoDisplayer sd;
+    sd.show_disparity_overlay();
+    //sd.test_mouse("/home/amar-aliaga/rama_img.jpg");
 
     return EXIT_SUCCESS;
 }

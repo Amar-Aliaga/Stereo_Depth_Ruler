@@ -23,4 +23,4 @@ add_library(utils STATIC ${SRC_FILES} ${HEADER_FILES})
 
 target_include_directories(utils PUBLIC ${OpenCV_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-target_link_libraries(utils PUBLIC ${PCL_LIBRARIES} ${OpenCV_LIBS} stereo_vision point_cloud)
+target_link_libraries(utils PUBLIC ${PCL_LIBRARIES} ${OpenCV_LIBS} stereo_vision)

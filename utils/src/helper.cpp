@@ -6,7 +6,7 @@
 #include "stereo_disparity.hpp"
 #include "stereo_rectifier.hpp"
 #include "stereo_configuration.hpp"
-#include "pcd_write.hpp"
+#include "stereo_displayer.hpp"
 
 #include <sl/Camera.hpp>
 #include <iostream>
@@ -14,6 +14,7 @@
 #include <string>
 #include <filesystem>
 #include <limits>
+#include <utility>
 
 
 void save_frames() {
@@ -163,6 +164,8 @@ void image_desparity(const std::string &img_file) {
 }
 
 void zed_footage() {
+    std::cout << "ZED SDK Version: " << sl::Camera::getSDKVersion() << std::endl;
+
     sl::Camera zed;
 
     sl::InitParameters init_params;
@@ -202,43 +205,65 @@ void zed_footage() {
 }
 
 
-void image_disparity_measure(const std::string &img_file) {
-    StereoConfiguration config;
-    if (!config.loadFromFile("config/stereo.yaml")) {
-        std::cerr << "Could not load stereo.yaml" << std::endl;
-        return;
+// void StereoDisplayer::MouseCallbackWrapper(int event, int x, int y, int flags, void *user_data) {
+//     auto* displayer = static_cast<StereoDisplayer*>(user_data);
+//     if (displayer) {
+//         displayer->onMouseMeasure(event, x, y, flags, mouse_data);
+//     }
+// }
+
+
+// void image_disparity_measure(const std::string &img_file) {
+//     StereoConfiguration config;
+//     if (!config.loadFromFile("config/stereo.yaml")) {
+//         std::cerr << "Could not load stereo.yaml" << std::endl;
+//         return;
+//     }
+//     StereoRectifier rectifier(config);
+//     StereoDisparity disparity_computer(config.Q);
+
+//     StereoDisplayer ds;
+
+//     cv::Mat frame = cv::imread(img_file, cv::IMREAD_COLOR);
+//     if (frame.empty()) {
+//         std::cerr << "Could not load image: " << img_file << std::endl;
+//         return;
+//     }
+//     cv::Mat left_raw  = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
+//     cv::Mat right_raw = frame(cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows));
+
+//     cv::Mat left_rect, right_rect;
+//     rectifier.rectify(left_raw, right_raw, left_rect, right_rect);
+
+//     cv::Mat disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
+//     cv::Mat depth_map = disparity_computer.computeDepth(disp_float);
+
+//     cv::Mat show_disp = disparity_computer.show_disparityMap(disp_float);
+//     cv::Mat show_depth = disparity_computer.show_depthMap(depth_map);
+
+//     MouseMat mouse_data;
+//     mouse_data.raw_map = std::make_shared<cv::Mat>(disp_float.clone());
+//     mouse_data.dis_map = std::make_shared<cv::Mat>(show_disp.clone());;
+
+//     cv::imshow("Rectified Left", left_rect);
+//     cv::imshow("Rectified Right", right_rect);
+//     cv::imshow("Disparity (vis)", show_disp);
+//     cv::imshow("Depth Map", show_depth);
+//     cv::setMouseCallback("Disparity (vis)", onMouseMeasure, &mouse_data);
+
+//     std::cout << "Click two points in the Disparity (vis) window to measure distance." << std::endl;
+//     //depth_coverage(depth_map);
+//     specific_depth_pixel(depth_map);
+
+//     cv::waitKey(0);
+//     cv::destroyAllWindows();
+// }
+
+void specific_depth_pixel(const cv::Mat &mat) {
+    for(int i = 0; i<mat.rows; ++i) {
+        for(int j = 0; j<mat.cols; ++j) {
+            cv::Vec3f depth = mat.at<cv::Vec3f>(i, j)[2];
+            std::cout << depth << std::endl;
+        }
     }
-    StereoRectifier rectifier(config);
-    StereoDisparity disparity_computer(config.Q);
-
-    cv::Mat frame = cv::imread(img_file, cv::IMREAD_COLOR);
-    if (frame.empty()) {
-        std::cerr << "Could not load image: " << img_file << std::endl;
-        return;
-    }
-    cv::Mat left_raw  = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
-    cv::Mat right_raw = frame(cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows));
-
-    cv::Mat left_rect, right_rect;
-    rectifier.rectify(left_raw, right_raw, left_rect, right_rect);
-
-    cv::Mat disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
-    cv::Mat depth_map = disparity_computer.computeDepth(disp_float);
-
-    cv::Mat show_disp = disparity_computer.show_disparityMap(disp_float);
-    cv::Mat show_depth = disparity_computer.show_depthMap(depth_map);
-
-    MouseMat mouse_data;
-    mouse_data.raw_map = &disp_float;
-    mouse_data.dis_map = &show_disp;
-
-    cv::imshow("Rectified Left", left_rect);
-    cv::imshow("Rectified Right", right_rect);
-    cv::imshow("Disparity (vis)", show_disp);
-    cv::imshow("Depth Map", show_depth);
-    cv::setMouseCallback("Disparity (vis)", onMouseMeasure, &mouse_data);
-
-    std::cout << "Click two points in the Disparity (vis) window to measure distance." << std::endl;
-    cv::waitKey(0);
-    cv::destroyAllWindows();
 }

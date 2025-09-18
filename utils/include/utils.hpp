@@ -6,14 +6,8 @@
 #include <pcl/point_types.h>
 #include <pcl/PCLPointCloud2.h>
 #include <string>
+#include <memory>
 
-struct MouseMat {
-    cv::Mat *raw_map = nullptr;
-    cv::Mat *dis_map = nullptr;
-};
-
-void onMouseMeasure(int event, int x, int y, int, void*);
-void save_csvFile();
 
 bool hasField(const pcl::PCLPointCloud2& blob, const std::string& name);
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr convertCVMatToPCL(const cv::Mat& depth_map, const cv::Mat& color_image);

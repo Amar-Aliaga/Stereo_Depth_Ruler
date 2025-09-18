@@ -103,10 +103,10 @@ void StereoDisplayer::save_csvFile() {
 
 
 void StereoDisplayer::depth_coverage(const cv::Mat &mat) {
-    int counter {0};
+    int counter {0}, num_dis{80};
     const int total_pixels = mat.rows * mat.cols;
     for(int i = 0; i<mat.rows; ++i) {
-        for(int j = 0; j<mat.cols; ++j) {
+        for(int j = num_dis; j<mat.cols; ++j) {
             cv::Vec3f conf_pixel = mat.at<cv::Vec3f>(i, j);
             if(conf_pixel[2] >= 0.0 && conf_pixel[2] <= 12000.0 && !std::isnan(conf_pixel[2])) { // && conf_pixel[2] <= 1.0
                 counter++;
@@ -226,7 +226,9 @@ void StereoDisplayer::test_mouse(const cv::Mat &depth_map) {
             clicked_points.clear();
             points_history.clear();
             dist_vector.clear();
-            std::cout << "The values have been reseted." << std::endl;
+
+            std::ofstream csvFile("/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/results/measurements.csv");
+            csvFile.close();
 
             mouse_data.dis_map = std::make_shared<cv::Mat>(frozen.clone());
             this->mouse_data = mouse_data;

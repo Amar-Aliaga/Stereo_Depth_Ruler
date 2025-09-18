@@ -146,9 +146,12 @@ void save_and_display_pointcloud() {
     }
 
     // Display the point cloud
-    pcl::visualization::CloudViewer viewer("PCD Viewer");
-    viewer.showCloud(cloud_filtered);
-    while (!viewer.wasStopped()) {}
+    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("PCD Viewer"));
+    viewer->setSize(800, 600); // Set window size to 800x600 pixels
+    viewer->addPointCloud<PointT>(cloud_filtered, "cloud");
+    while (!viewer->wasStopped()) {
+        viewer->spinOnce(100);
+    }
 }
 
 int main() {
