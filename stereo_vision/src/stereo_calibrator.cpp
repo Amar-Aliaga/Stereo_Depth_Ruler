@@ -191,4 +191,6 @@ bool StereoCalibrator::run_calibration() {
 
 const int StereoCalibrator::getBoardSize_Width()    const noexcept { return boardSize.width;   }
 const int StereoCalibrator::getBoardSize_Height()   const noexcept { return boardSize.height;  }
-const float StereoCalibrator::getSquareSize()         const noexcept { return squareSize;        }
+const float StereoCalibrator::getSquareSize()       const noexcept { return squareSize;        }
+
+const StereoConfiguration StereoCalibrator::get_config() const noexcept { return config; }

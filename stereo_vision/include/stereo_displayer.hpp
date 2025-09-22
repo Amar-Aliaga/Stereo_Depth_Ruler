@@ -12,9 +12,9 @@
 
 struct MeasurementRecord {
     short image_index {};
-    cv::Point point1 {};
-    cv::Point point2 {};
-    float distance {};
+    cv::Point point1  {};
+    cv::Point point2  {};
+    float distance    {};
 };
 
 
@@ -30,8 +30,7 @@ class StereoDisplayer {
 
         std::vector<cv::Point> clicked_points {};
         std::vector<std::pair<cv::Point, cv::Point>> points_history {};
-        //std::vector<std::pair<cv::Point, cv::Point>> last_image_points {};
-        std::vector<MeasurementRecord> measurement_record;
+        std::vector<MeasurementRecord> measurement_record {};
         std::vector<float> dist_vector {};
 
         float dist {};
@@ -53,6 +52,7 @@ class StereoDisplayer {
         void depth_coverage(const cv::Mat &mat);
         void show_disparity_overlay();
 
-        void test();
-        void test_mouse(const cv::Mat &frame);
+        void measure_points(const cv::Mat &frame);
+
+        void image_depth(const std::string &path);
 };
