@@ -64,7 +64,7 @@ void StereoDisplayer::onMouseMeasure(int event, int x, int y, int flags, void *u
 
 
 void StereoDisplayer::MouseCallbackWrapper(int event, int x, int y, int flags, void *user_data) {
-    auto* displayer = static_cast<StereoDisplayer*>(user_data);
+    auto *displayer = static_cast<StereoDisplayer *>(user_data);
     if(displayer) {
         displayer->onMouseMeasure(event, x, y, flags, &(displayer->mouse_data));
     }
@@ -181,7 +181,7 @@ void StereoDisplayer::show_disparity_overlay() {
 
         cv::imshow("Left: rectified image + disparity overlay", overlay);
         cv::moveWindow("Left: rectified image + disparity overlay", 2200, 400 + left_rect.rows);
-
+        
         depth_coverage(depth_map);
 
         int key = cv::waitKey(1);

@@ -33,7 +33,7 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
     cv::Mat filtered_disp_float;
     filtered_disp.convertTo(filtered_disp_float, CV_32F, 1.0 / 16.0);
 
-    cv::Mat conf_map = wls_filter->getConfidenceMap();
+    confidence_map = wls_filter->getConfidenceMap();
 
     return filtered_disp_float;
 }     
@@ -126,4 +126,8 @@ cv::Mat StereoDisparity::show_depthMap(const cv::Mat &disparity) {
 
 const cv::Ptr<cv::StereoSGBM> StereoDisparity::get_matcher() const {
     return matcher;
+}
+
+const cv::Mat StereoDisparity::get_ConfidenceMap() const {
+    return confidence_map;
 }
