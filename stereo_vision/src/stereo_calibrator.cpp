@@ -31,7 +31,7 @@ bool StereoCalibrator::calibrate(const std::string &outputFile) {
     }
 
     for(const auto& entry : std::filesystem::directory_iterator(right_frames_dir)) {
-            right_files.push_back(entry.path().string());
+        right_files.push_back(entry.path().string());
     }
 
     std::sort( left_files.begin(),  left_files.end());
@@ -78,8 +78,10 @@ bool StereoCalibrator::calibrate(const std::string &outputFile) {
             cv::drawChessboardCorners(displayRight, boardSize, cornersRight, foundRight);
             
             cv::imshow("Left Camera", displayLeft);
+            cv::moveWindow("Left Camera", 2300, 100);
             cv::imshow("Right Camera", displayRight);
-            cv::waitKey(21); 
+            cv::moveWindow("Right Camera", 3700, 100);
+            cv::waitKey(23); 
         }
     }
 
@@ -98,7 +100,7 @@ bool StereoCalibrator::calibrate(const std::string &outputFile) {
     double rmsRight = cv::calibrateCamera(objectPoints, imagePointsRight, config.imageSize,
         config.cameraMatrixRight, config.distCoeffsRight, rvecsRight, tvecsRight);
 
-    std::cout << "Left camera RMS error: " << rmsLeft << std::endl;
+    std::cout << "Left camera RMS error: " <<  rmsLeft << std::endl;
     std::cout << "Right camera RMS error: " << rmsRight << std::endl;
 
     double rmsStereo = cv::stereoCalibrate(
@@ -166,10 +168,7 @@ void StereoCalibrator::printCalibrationResults() {
 }
 
 
-bool StereoCalibrator::run_calibration() {
-
-    const std::string &outputFile("config/stereo.yaml");
-    
+bool StereoCalibrator::process() {
     std::cout << "Starting stereo calibration..." << std::endl;
     std::cout << "Pattern: " << getBoardSize_Width() << "x" << getBoardSize_Height() << " inner corners" << std::endl;
     std::cout << "Square size: " << getSquareSize() << " mm" << std::endl;
@@ -189,6 +188,8 @@ bool StereoCalibrator::run_calibration() {
 }
 
 
-const int StereoCalibrator::getBoardSize_Width()    const noexcept { return boardSize.width;   }
-const int StereoCalibrator::getBoardSize_Height()   const noexcept { return boardSize.height;  }
+const int   StereoCalibrator::getBoardSize_Width()    const noexcept { return boardSize.width;   }
+const int   StereoCalibrator::getBoardSize_Height()   const noexcept { return boardSize.height;  }
 const float StereoCalibrator::getSquareSize()         const noexcept { return squareSize;        }
+
+const StereoConfiguration StereoCalibrator::get_config() const noexcept { return config; }

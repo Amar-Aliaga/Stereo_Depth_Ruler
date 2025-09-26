@@ -1,10 +1,12 @@
 #pragma once
 
 #include "stereo_configuration.hpp"
+#include "stereo_pipeline.hpp"
+
 #include <opencv2/opencv.hpp>
 #include <string>
 
-class StereoCalibrator {
+class StereoCalibrator : public StereoPipeline {
 private:
     const cv::Size boardSize {8, 6};
     static constexpr float squareSize {19.0f};
@@ -18,9 +20,10 @@ public:
     bool calibrate(const std::string &outputFile);
     void saveCalibration(const std::string& filename);
     void printCalibrationResults();
-    bool run_calibration();
+    bool process() override;
 
     const int getBoardSize_Width()    const noexcept;
     const int getBoardSize_Height()   const noexcept;
-    const float getSquareSize()         const noexcept;
+    const float getSquareSize()       const noexcept;
+    const StereoConfiguration get_config() const noexcept;
 };

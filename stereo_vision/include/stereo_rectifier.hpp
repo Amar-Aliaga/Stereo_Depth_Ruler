@@ -1,10 +1,11 @@
 #pragma once
 
 #include "stereo_configuration.hpp"
+#include "stereo_pipeline.hpp"
 #include <opencv2/opencv.hpp>
 #include <string>
 
-class StereoRectifier {
+class StereoRectifier : public StereoPipeline{
 private:
     const StereoConfiguration &config;
 
@@ -15,5 +16,5 @@ public:
     explicit StereoRectifier(const StereoConfiguration &config);
     void rectify(const cv::Mat &left_src, const cv::Mat &right_src, cv::Mat &left_dst, cv::Mat &right_dst);
     void drawEpipolarLines(cv::Mat &rectifiedLeft, cv::Mat &rectifiedRight);
-    bool run_rectification();
+    bool process() override;
 };

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 
+
 StereoRectifier::StereoRectifier(const StereoConfiguration &config) : config(config) {
     cv::initUndistortRectifyMap(config.cameraMatrixLeft, config.distCoeffsLeft, config.R1, 
                                 config.P1, config.imageSize, CV_16SC2, mapL1, mapL2);
@@ -20,8 +21,8 @@ void StereoRectifier::rectify(const cv::Mat &left_src, const cv::Mat &right_src,
         return;
     }
 
-    left_src.size()  = cv::Size(1280, 720);
-    right_src.size() = cv::Size(1280, 720);
+    // left_src.size()  = cv::Size(1280, 720);
+    // right_src.size() = cv::Size(1280, 720);
 
     //cv::Mat leftResized, rightResized;
     if (left_src.size() != config.imageSize || right_src.size() != config.imageSize) {
@@ -38,6 +39,8 @@ void StereoRectifier::rectify(const cv::Mat &left_src, const cv::Mat &right_src,
 
     cv::remap(left_src,   left_dst, mapL1, mapL2, cv::INTER_LINEAR);
     cv::remap(right_src, right_dst, mapR1, mapR2, cv::INTER_LINEAR);
+
+    std::cout << "Image rectified successfully" << std::endl;
 }
 
 
@@ -51,15 +54,11 @@ void StereoRectifier::drawEpipolarLines(cv::Mat &rectifiedLeft, cv::Mat &rectifi
 }
 
 
-bool StereoRectifier::run_rectification() {
-    const std::string &outputFile("config/stereo.yaml");
-
-    // if (!config.isValid(outputFile)) {
-    //     std::cerr << "Failed to load calibration!" << std::endl;
-    //     return false;
-    // }
-
-    cv::VideoCapture cap("/home/amar-aliaga/Desktop/my_video/output.mp4");
+bool StereoRectifier::process() {
+    const std::string &s {"assets/output.mp4"};
+    const std::string &v {"assets/cam.mp4"};
+    
+    cv::VideoCapture cap(std::move(s));
     if(!cap.isOpened()) {
         std::cerr << "Error: Could not open camera." << std::endl;
         return false;
@@ -69,7 +68,7 @@ bool StereoRectifier::run_rectification() {
     //cap.set(cv::CAP_PROP_FRAME_WIDTH, 2560);
     //cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
 
-    double width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+    double width  = cap.get(cv::CAP_PROP_FRAME_WIDTH);
     double height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
     std::cout << "Actual resolution: " << width << "x" << height << std::endl;
 
@@ -83,6 +82,9 @@ bool StereoRectifier::run_rectification() {
 
         cv::Mat left_image  = frame(cv::Rect(0, 0, frame.cols/2, frame.rows));
         cv::Mat right_image = frame(cv::Rect(frame.cols/2, 0, frame.cols/2, frame.rows));
+
+        cv::resize(left_image,  left_image,  cv::Size(), 0.5, 0.5, cv::INTER_AREA);
+        cv::resize(right_image, right_image, cv::Size(), 0.5, 0.5, cv::INTER_AREA);
 
         std::cout << "left image: " << left_image.size() << std::endl;
         std::cout << "Right image: " << right_image.size() << std::endl;

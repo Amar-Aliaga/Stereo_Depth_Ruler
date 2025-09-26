@@ -33,8 +33,8 @@ void StereoDisplayer::onMouseMeasure(int event, int x, int y, int flags, void *u
     
     clicked_points.push_back(cv::Point(x, y));
 
-    cv::circle(*disMap, clicked_points[0], 3.71, cv::Scalar(0,0,255), -1);
-    cv::circle(*disMap, clicked_points[1], 3.71, cv::Scalar(0,0,255), -1);
+    cv::circle(*disMap, clicked_points[0], 2.91, cv::Scalar(0,0,255), -1);
+    cv::circle(*disMap, clicked_points[1], 2.91, cv::Scalar(0,0,255), -1);
     cv::imshow("Paused Image", *disMap);
 
     if (clicked_points.size() == 2) {
@@ -64,7 +64,7 @@ void StereoDisplayer::onMouseMeasure(int event, int x, int y, int flags, void *u
 
 
 void StereoDisplayer::MouseCallbackWrapper(int event, int x, int y, int flags, void *user_data) {
-    auto* displayer = static_cast<StereoDisplayer*>(user_data);
+    auto *displayer = static_cast<StereoDisplayer *>(user_data);
     if(displayer) {
         displayer->onMouseMeasure(event, x, y, flags, &(displayer->mouse_data));
     }
@@ -118,21 +118,21 @@ void StereoDisplayer::depth_coverage(const cv::Mat &mat) {
 }
 
 
-void StereoDisplayer::show_disparity_overlay() {
+bool StereoDisplayer::process() {
     const std::string &s {"assets/output.mp4"};
     const std::string &v {"assets/cam.mp4"};
 
-    if (!config.loadFromFile("config/stereo.yaml")) {
+    if (!config.loadFromFile(outputFile)) {
         std::cerr << "Error: Could not load configuration file." << std::endl;
-        return;
+        return false;
     }
     StereoRectifier rectifier(config);
     StereoDisparity disparity_computer(config.Q);
 
-    cv::VideoCapture cap(s);
+    cv::VideoCapture cap(std::move(v));
     if (!cap.isOpened()) {
         std::cerr << "Error: Could not open video file." << std::endl;
-        return;
+        return false;
     }
 
     cap.set(cv::CAP_PROP_FRAME_WIDTH, 2560);
@@ -187,19 +187,20 @@ void StereoDisplayer::show_disparity_overlay() {
         int key = cv::waitKey(1);
         switch(key) {
             case 27:
-                return;
+                return false;
             case 102:
                 frozen = overlay.clone();
                 cv::imshow("Paused Image", frozen);
                 cv::moveWindow("Paused Image", 3100, 400 + left_rect.rows);
-                test_mouse(depth_map);
+                measure_points(depth_map);
                 break;
         }
     }
+    return true;
 }
 
 
-void StereoDisplayer::test_mouse(const cv::Mat &depth_map) {
+void StereoDisplayer::measure_points(const cv::Mat &depth_map) {
     if (depth_map.empty()) {
         std::cerr << "Could not load depth map for measurement." << std::endl;
         return;
@@ -245,6 +246,65 @@ void StereoDisplayer::test_mouse(const cv::Mat &depth_map) {
             this->mouse_data = mouse_data;
             cv::imshow("Paused Image", *mouse_data.dis_map);
         }
+    }
+    cv::destroyWindow("Paused Image");
+}
+
+
+void StereoDisplayer::image_depth(const std::string &path) {
+    
+    cv::Mat frame = cv::imread(path, cv::IMREAD_COLOR);
+    if (!config.loadFromFile(outputFile)) {
+        std::cerr << "Error: Could not load configuration file." << std::endl;
+        return;
+    }
+    StereoRectifier rectifier(config);
+    StereoDisparity disparity_computer(config.Q);
+
+    cv::Mat left_raw = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
+    cv::Mat right_raw = frame(cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows));
+
+    cv::Mat left_rect, right_rect;
+    rectifier.rectify(left_raw, right_raw, left_rect, right_rect);
+
+    cv::Mat disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
+    depth_map = disparity_computer.computeDepth(disp_float);
+
+    cv::Mat display_depth = disparity_computer.show_depthMap(depth_map);
+    cv::Mat display_disparity = disparity_computer.show_disparityMap(disp_float);
+
+    cv::Mat disparity_heatmap;
+    cv::applyColorMap(display_disparity, disparity_heatmap, cv::COLORMAP_JET);
+
+    cv::resize(disparity_heatmap, disparity_heatmap, display_depth.size());
+    cv::resize(left_rect, left_rect, cv::Size(), 0.5, 0.5, cv::INTER_AREA);
+
+    cv::addWeighted(left_rect, 0.7, disparity_heatmap, 0.3, 0, overlay);
+
+    if (depth_map.empty()) {
+        std::cerr << "Could not load depth map for measurement." << std::endl;
+        return;
+    }
+
+    int h = overlay.cols;
+    int w = overlay.rows;
+    std::cout << "height: " << h << "\n" << "width: " << w << std::endl;
+
+    if (frozen.empty()) frozen = overlay.clone();
+
+    MouseMat mouse_data;
+    mouse_data.raw_map = std::make_shared<cv::Mat>(depth_map.clone());
+    mouse_data.dis_map = std::make_shared<cv::Mat>(frozen.clone()); 
+
+    this->mouse_data = mouse_data;
+
+    cv::imshow("Depth Image", display_depth);
+    cv::imshow("Paused Image", *mouse_data.dis_map);
+    cv::setMouseCallback("Paused Image", StereoDisplayer::MouseCallbackWrapper, this);
+
+    while (true) {
+        int key = cv::waitKey(1);
+        if (key == 27) break;
     }
     cv::destroyWindow("Paused Image");
 }

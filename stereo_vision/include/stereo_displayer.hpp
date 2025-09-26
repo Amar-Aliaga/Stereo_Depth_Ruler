@@ -4,6 +4,7 @@
 #include "stereo_configuration.hpp"
 #include "stereo_disparity.hpp"
 #include "stereo_rectifier.hpp"
+#include "stereo_pipeline.hpp"
 
 #include <utility>
 #include <vector>
@@ -12,9 +13,9 @@
 
 struct MeasurementRecord {
     short image_index {};
-    cv::Point point1 {};
-    cv::Point point2 {};
-    float distance {};
+    cv::Point point1  {};
+    cv::Point point2  {};
+    float distance    {};
 };
 
 
@@ -24,22 +25,19 @@ struct MouseMat {
 };
 
 
-class StereoDisplayer {
+class StereoDisplayer : public StereoPipeline {
     private:
         StereoConfiguration config;
 
         std::vector<cv::Point> clicked_points {};
         std::vector<std::pair<cv::Point, cv::Point>> points_history {};
-        //std::vector<std::pair<cv::Point, cv::Point>> last_image_points {};
-        std::vector<MeasurementRecord> measurement_record;
+        std::vector<MeasurementRecord> measurement_record {};
         std::vector<float> dist_vector {};
 
         float dist {};
         short current_image_index = 1;
 
         MouseMat mouse_data {};
-
-        cv::Mat depth_map, overlay, frozen;
 
     public:
         //StereoDisplayer(StereoConfiguration &config);
@@ -51,8 +49,9 @@ class StereoDisplayer {
         void save_csvFile();
 
         void depth_coverage(const cv::Mat &mat);
-        void show_disparity_overlay();
+        bool process() override;
 
-        void test();
-        void test_mouse(const cv::Mat &frame);
+        void measure_points(const cv::Mat &frame);
+
+        void image_depth(const std::string &path);
 };
