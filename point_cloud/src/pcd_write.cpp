@@ -156,8 +156,3 @@ void save_and_display_pointcloud() {
         viewer->spinOnce(100);
     }
 }
-
-int main() {
-    save_and_display_pointcloud();
-    return 0;
-}
