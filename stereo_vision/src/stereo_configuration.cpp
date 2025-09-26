@@ -1,6 +1,8 @@
 #include "stereo_configuration.hpp"
 #include <iostream>
 
+StereoConfiguration::StereoConfiguration() { loadFromFile("config/stereo.yaml"); }
+
 bool StereoConfiguration::loadFromFile(const std::string &filename) {
     cv::FileStorage fs(filename, cv::FileStorage::READ);
     if (!fs.isOpened()) {

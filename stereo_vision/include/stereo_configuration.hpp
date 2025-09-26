@@ -10,7 +10,12 @@ struct StereoConfiguration {
     cv::Mat R1, R2, P1, P2, Q;
     cv::Size imageSize;
 
-    StereoConfiguration() = default;
+    static StereoConfiguration &getConfig() {
+        static StereoConfiguration config;
+        return config;
+    }
+
+    StereoConfiguration();
 
     bool loadFromFile(const std::string &filename);
     bool saveToFile(const std::string &filename);
