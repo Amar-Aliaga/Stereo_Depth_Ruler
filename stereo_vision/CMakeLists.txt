@@ -27,16 +27,17 @@ target_include_directories(stereo_vision PUBLIC
   include
   ${OpenCV_INCLUDE_DIRS}
   ${ZED_INCLUDE_DIRS}
+  ../point_cloud/include
 )
 
 if (TARGET sl_zed::zed)
-  target_link_libraries(stereo_vision PUBLIC sl_zed::zed ${OpenCV_LIBS})
+  target_link_libraries(stereo_vision PUBLIC sl_zed::zed ${OpenCV_LIBS} point_cloud)
 elseif (TARGET ZED::ZED)
-  target_link_libraries(stereo_vision PUBLIC ZED::ZED ${OpenCV_LIBS})
+  target_link_libraries(stereo_vision PUBLIC ZED::ZED ${OpenCV_LIBS} point_cloud)
 elseif (TARGET ZED::ZED_SDK)
-  target_link_libraries(stereo_vision PUBLIC ZED::ZED_SDK ${OpenCV_LIBS})
+  target_link_libraries(stereo_vision PUBLIC ZED::ZED_SDK ${OpenCV_LIBS} point_cloud)
 elseif (DEFINED ZED_LIBRARIES)
-  target_link_libraries(stereo_vision PUBLIC ${ZED_LIBRARIES} ${OpenCV_LIBS})
+  target_link_libraries(stereo_vision PUBLIC ${ZED_LIBRARIES} ${OpenCV_LIBS} point_cloud)
 else()
   message(FATAL_ERROR "ZED SDK found but no usable target/vars (sl_zed::zed / ZED::ZED / ZED::ZED_SDK / ZED_LIBRARIES).")
 endif()

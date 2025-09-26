@@ -3,6 +3,8 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/ximgproc.hpp>
 
+#include "stereo_configuration.hpp"
+
 #include <string>
 #include <memory>
 
@@ -12,5 +14,6 @@ class StereoPipeline {
         cv::Mat depth_map, overlay, frozen;
 
         virtual bool process() = 0;
+        //virtual void display() = 0;
         virtual ~StereoPipeline() = default;
 };

@@ -57,7 +57,7 @@ void StereoRectifier::drawEpipolarLines(cv::Mat &rectifiedLeft, cv::Mat &rectifi
 bool StereoRectifier::process() {
     const std::string &s {"assets/output.mp4"};
     const std::string &v {"assets/cam.mp4"};
-    
+
     cv::VideoCapture cap(std::move(s));
     if(!cap.isOpened()) {
         std::cerr << "Error: Could not open camera." << std::endl;
@@ -96,7 +96,9 @@ bool StereoRectifier::process() {
         if(c == 27) break;
         else {
             cv::imshow("Left Rectified Image", left_res);
+            cv::moveWindow("Left Rectified Image", 2300, 100);
             cv::imshow("Right Rectified Image", right_res);
+            cv::moveWindow("Right Rectified Image", 3700, 100);
         }
     }
     return true;
