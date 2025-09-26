@@ -1,21 +1,16 @@
 #pragma once
 
-#include "stereo_calibrator.hpp"
-#include "stereo_configuration.hpp"
-#include "stereo_disparity.hpp"
-#include "stereo_rectifier.hpp"
-#include "stereo_displayer.hpp"
+#include <opencv2/opencv.hpp>
+#include <opencv2/ximgproc.hpp>
+
+#include <string>
+#include <memory>
 
 class StereoPipeline {
-    private:
-        const StereoConfiguration &config;
-        const StereoCalibrator    &calibrator;
-        const StereoRectifier     &rectifier;
-        const StereoDisparity     &disparity;
-        const StereoDisplayer     &displayer;
     public:
-        StereoPipeline(const StereoCalibrator &cal, const StereoRectifier &rect, const StereoDisparity &dis, const StereoDisplayer &display);
-        StereoPipeline(const StereoCalibrator &cal);
-        StereoPipeline(const StereoCalibrator &cal, const StereoRectifier &rect);
-        StereoPipeline(const StereoCalibrator &cal, const StereoDisparity &dis);
+        const std::string outputFile {"config/stereo.yaml"};
+        cv::Mat depth_map, overlay, frozen;
+
+        virtual bool process() = 0;
+        virtual ~StereoPipeline() = default;
 };

@@ -78,8 +78,10 @@ bool StereoCalibrator::calibrate(const std::string &outputFile) {
             cv::drawChessboardCorners(displayRight, boardSize, cornersRight, foundRight);
             
             cv::imshow("Left Camera", displayLeft);
+            cv::moveWindow("Left Camera", 2300, 100);
             cv::imshow("Right Camera", displayRight);
-            cv::waitKey(21); 
+            cv::moveWindow("Right Camera", 3700, 100);
+            cv::waitKey(23); 
         }
     }
 
@@ -166,10 +168,7 @@ void StereoCalibrator::printCalibrationResults() {
 }
 
 
-bool StereoCalibrator::run_calibration() {
-
-    const std::string &outputFile("config/stereo.yaml");
-    
+bool StereoCalibrator::process() {
     std::cout << "Starting stereo calibration..." << std::endl;
     std::cout << "Pattern: " << getBoardSize_Width() << "x" << getBoardSize_Height() << " inner corners" << std::endl;
     std::cout << "Square size: " << getSquareSize() << " mm" << std::endl;

@@ -4,6 +4,7 @@
 #include "stereo_configuration.hpp"
 #include "stereo_disparity.hpp"
 #include "stereo_rectifier.hpp"
+#include "stereo_pipeline.hpp"
 
 #include <utility>
 #include <vector>
@@ -24,7 +25,7 @@ struct MouseMat {
 };
 
 
-class StereoDisplayer {
+class StereoDisplayer : public StereoPipeline {
     private:
         StereoConfiguration config;
 
@@ -38,8 +39,6 @@ class StereoDisplayer {
 
         MouseMat mouse_data {};
 
-        cv::Mat depth_map, overlay, frozen;
-
     public:
         //StereoDisplayer(StereoConfiguration &config);
         StereoDisplayer() = default;
@@ -50,7 +49,7 @@ class StereoDisplayer {
         void save_csvFile();
 
         void depth_coverage(const cv::Mat &mat);
-        void show_disparity_overlay();
+        bool process() override;
 
         void measure_points(const cv::Mat &frame);
 

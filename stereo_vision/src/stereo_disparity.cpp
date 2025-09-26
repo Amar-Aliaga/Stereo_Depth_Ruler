@@ -124,9 +124,82 @@ cv::Mat StereoDisparity::show_depthMap(const cv::Mat &disparity) {
 }
 
 
+bool StereoDisparity::process() {
+    const std::string &s {"assets/output.mp4"};
+    const std::string &v {"assets/cam.mp4"};
+
+    StereoConfiguration config;
+    if(!config.loadFromFile(outputFile)) {
+        std::cerr << "Failed to load config" << std::endl;
+        return false;
+    }
+
+    StereoRectifier rectifier(config);
+    StereoDisparity disparity_computer(config.Q);
+
+    cv::VideoCapture cap(std::move(s));
+    if (!cap.isOpened()) {
+        std::cerr << "Error: Could not open video file." << std::endl;
+        return false;
+    }
+
+    cap.set(cv::CAP_PROP_FRAME_WIDTH, 2560);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
+
+    int w = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+    int h = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+    std::cout << "Res: " << w << "x" << h << std::endl;
+
+     while (true) {
+        cv::Mat frame;
+
+        cap >> frame;
+        if (frame.empty()) {
+            std::cout << "End of video." << std::endl;
+            break;
+        }
+
+
+        cv::Mat left_raw = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
+        cv::Mat right_raw = frame(cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows));
+
+        cv::Mat left_rect, right_rect;
+        rectifier.rectify(left_raw, right_raw, left_rect, right_rect);
+
+        cv::Mat disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
+        depth_map = disparity_computer.computeDepth(disp_float);
+
+        cv::Mat display_depth = disparity_computer.show_depthMap(depth_map);
+        cv::Mat display_disparity = disparity_computer.show_disparityMap(disp_float);
+
+        cv::Mat disparity_heatmap;
+        cv::applyColorMap(display_disparity, disparity_heatmap, cv::COLORMAP_JET);
+
+        cv::resize(disparity_heatmap, disparity_heatmap, display_depth.size());
+        cv::resize(left_rect, left_rect, cv::Size(), 0.5, 0.5, cv::INTER_AREA);
+
+        cv::addWeighted(left_rect, 0.7, disparity_heatmap, 0.3, 0, overlay);
+
+
+        cv::imshow("Left Rectified", left_rect);
+        cv::moveWindow("Left Rectified", 2700, 300);
+
+        cv::imshow("Depth Map", display_depth);
+        cv::moveWindow("Depth Map", 3600, 300);
+
+        cv::imshow("Left: rectified image + disparity overlay", overlay);
+        cv::moveWindow("Left: rectified image + disparity overlay", 2700, 400 + left_rect.rows);
+
+        if(cv::waitKey(1) == 27) break;
+    }
+    return true;
+}
+
+
 const cv::Ptr<cv::StereoSGBM> StereoDisparity::get_matcher() const {
     return matcher;
 }
+
 
 const cv::Mat StereoDisparity::get_ConfidenceMap() const {
     return confidence_map;

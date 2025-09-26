@@ -33,8 +33,8 @@ void StereoDisplayer::onMouseMeasure(int event, int x, int y, int flags, void *u
     
     clicked_points.push_back(cv::Point(x, y));
 
-    cv::circle(*disMap, clicked_points[0], 3.71, cv::Scalar(0,0,255), -1);
-    cv::circle(*disMap, clicked_points[1], 3.71, cv::Scalar(0,0,255), -1);
+    cv::circle(*disMap, clicked_points[0], 2.91, cv::Scalar(0,0,255), -1);
+    cv::circle(*disMap, clicked_points[1], 2.91, cv::Scalar(0,0,255), -1);
     cv::imshow("Paused Image", *disMap);
 
     if (clicked_points.size() == 2) {
@@ -118,21 +118,21 @@ void StereoDisplayer::depth_coverage(const cv::Mat &mat) {
 }
 
 
-void StereoDisplayer::show_disparity_overlay() {
+bool StereoDisplayer::process() {
     const std::string &s {"assets/output.mp4"};
     const std::string &v {"assets/cam.mp4"};
 
-    if (!config.loadFromFile("config/stereo.yaml")) {
+    if (!config.loadFromFile(outputFile)) {
         std::cerr << "Error: Could not load configuration file." << std::endl;
-        return;
+        return false;
     }
     StereoRectifier rectifier(config);
     StereoDisparity disparity_computer(config.Q);
 
-    cv::VideoCapture cap(std::move(s));
+    cv::VideoCapture cap(std::move(v));
     if (!cap.isOpened()) {
         std::cerr << "Error: Could not open video file." << std::endl;
-        return;
+        return false;
     }
 
     cap.set(cv::CAP_PROP_FRAME_WIDTH, 2560);
@@ -181,13 +181,13 @@ void StereoDisplayer::show_disparity_overlay() {
 
         cv::imshow("Left: rectified image + disparity overlay", overlay);
         cv::moveWindow("Left: rectified image + disparity overlay", 2200, 400 + left_rect.rows);
-        
+
         depth_coverage(depth_map);
 
         int key = cv::waitKey(1);
         switch(key) {
             case 27:
-                return;
+                return false;
             case 102:
                 frozen = overlay.clone();
                 cv::imshow("Paused Image", frozen);
@@ -196,6 +196,7 @@ void StereoDisplayer::show_disparity_overlay() {
                 break;
         }
     }
+    return true;
 }
 
 
@@ -253,7 +254,7 @@ void StereoDisplayer::measure_points(const cv::Mat &depth_map) {
 void StereoDisplayer::image_depth(const std::string &path) {
     
     cv::Mat frame = cv::imread(path, cv::IMREAD_COLOR);
-    if (!config.loadFromFile("config/stereo.yaml")) {
+    if (!config.loadFromFile(outputFile)) {
         std::cerr << "Error: Could not load configuration file." << std::endl;
         return;
     }
