@@ -196,7 +196,7 @@ bool StereoDisplayer::process() {
                 cv::imshow("Paused Image", frozen);
                 cv::moveWindow("Paused Image", 3100, 400 + left_rect.rows);
                 measure_points(depth_map);
-                pcl.show_pointcloud(left_rect, depth_map, voxel_size);
+                pcl.show_pointCloud(left_rect, depth_map, voxel_size);
                 break;
         }
     }
