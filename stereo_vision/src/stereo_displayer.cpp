@@ -3,6 +3,7 @@
 #include "stereo_disparity.hpp"
 #include "stereo_rectifier.hpp"
 #include "stereo_configuration.hpp"
+#include "pcd_write.hpp"
 
 #include <opencv2/opencv.hpp>
 
@@ -120,7 +121,8 @@ void StereoDisplayer::depth_coverage(const cv::Mat &mat) {
 
 bool StereoDisplayer::process() {
     const std::string &s {"assets/output.mp4"};
-    const std::string &v {"assets/cam.mp4"};
+    const std::string &v {"/home/amar-aliaga/Downloads/cam.mp4"};
+    float voxel_size = PointCloud::get_voxel();
 
     if (!config.loadFromFile(outputFile)) {
         std::cerr << "Error: Could not load configuration file." << std::endl;
@@ -128,8 +130,9 @@ bool StereoDisplayer::process() {
     }
     StereoRectifier rectifier(config);
     StereoDisparity disparity_computer(config.Q);
+    PointCloud pcl;
 
-    cv::VideoCapture cap(std::move(v));
+    cv::VideoCapture cap(std::move(s));
     if (!cap.isOpened()) {
         std::cerr << "Error: Could not open video file." << std::endl;
         return false;
@@ -176,8 +179,8 @@ bool StereoDisplayer::process() {
         cv::imshow("Left Rectified", left_rect);
         cv::moveWindow("Left Rectified", 2200, 300);
 
-        cv::imshow("Depth Map", display_depth);
-        cv::moveWindow("Depth Map", 3100, 300);
+        // cv::imshow("Depth Map", display_depth);
+        // cv::moveWindow("Depth Map", 3100, 300);
 
         cv::imshow("Left: rectified image + disparity overlay", overlay);
         cv::moveWindow("Left: rectified image + disparity overlay", 2200, 400 + left_rect.rows);
@@ -193,6 +196,7 @@ bool StereoDisplayer::process() {
                 cv::imshow("Paused Image", frozen);
                 cv::moveWindow("Paused Image", 3100, 400 + left_rect.rows);
                 measure_points(depth_map);
+                pcl.show_pointcloud(left_rect, depth_map, voxel_size);
                 break;
         }
     }
