@@ -51,94 +51,24 @@ PointCloud::PointCloudT::Ptr PointCloud::convertCVMatToPCL(const cv::Mat& pointC
     return cloud;
 }
 
-void PointCloud::save_and_display_pointcloud() {
-    const std::string video_path1 = "/home/amar-aliaga/Downloads/cam.mp4";
-    const std::string Q_matrix_path = "/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/config/stereo.yaml";
-    const std::string output_dir = "/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/results/";
-    const int target_frame = 100;
-
-    cv::VideoCapture cap(video_path1);
-    if (!cap.isOpened()) {
-        std::cerr << "Could not open video: " << video_path1 << std::endl;
+void PointCloud::show_pointcloud(const cv::Mat &left, const cv::Mat &pointCloud_CV, const float voxel_size) {
+    if (left.empty() || left.cols % 2 != 0) {
+        std::cerr << "Invalid stereo image!" << std::endl;
         return;
     }
-
-    cv::Mat frame;
-    for (int i = 0; i <= target_frame; ++i) {
-        cap >> frame;
-        if (frame.empty()) {
-            std::cerr << "Could not read frame " << i << std::endl;
-            return;
-        }
-    }
-
-    if (frame.cols % 2 != 0) {
-        std::cerr << "Frame width is not even; cannot split into left/right images." << std::endl;
-        return;
-    }
-
-    int width = frame.cols / 2;
-    cv::Mat left  = frame(cv::Rect(0, 0, width, frame.rows)).clone();
-    cv::Mat right = frame(cv::Rect(width, 0, width, frame.rows)).clone();
-
-    cv::Mat left_gray, right_gray;
-    cv::cvtColor(left, left_gray, cv::COLOR_BGR2GRAY);
-    cv::cvtColor(right, right_gray, cv::COLOR_BGR2GRAY);
-
-    cv::FileStorage fs(Q_matrix_path, cv::FileStorage::READ);
-    cv::Mat Q;
-    fs["Q"] >> Q;
-    fs.release();
-    if (Q.empty()) {
-        std::cerr << "Could not load Q matrix from " << Q_matrix_path << std::endl;
-        return;
-    }
-
-    cv::Ptr<cv::StereoSGBM> sgbm = cv::StereoSGBM::create(
-        0, 80, 5,
-        8 * 5 * 5 * 3,
-        32 * 5 * 5 * 3,
-        1, 63, 12, 200, 2,
-        cv::StereoSGBM::MODE_SGBM_3WAY
-    );
-
-    cv::Mat disp, disp_float;
-    sgbm->compute(left_gray, right_gray, disp);
-    disp.convertTo(disp_float, CV_32F, 1.0 / 16.0);
-
-    // Reproject to 3D
-    cv::Mat pointCloud_CV;
-    cv::reprojectImageTo3D(disp_float, pointCloud_CV, Q, true);
-
 
     PointCloudT::Ptr pcl_cloud = convertCVMatToPCL(pointCloud_CV, left);
-    std::cout << "Original points: " << pcl_cloud->size() << std::endl;
 
-    float voxel_size = 0.005f;
     pcl::VoxelGrid<PointT> voxel_filter;
     voxel_filter.setInputCloud(pcl_cloud);
     voxel_filter.setLeafSize(voxel_size, voxel_size, voxel_size);
 
     PointCloudT::Ptr cloud_filtered(new PointCloudT);
     voxel_filter.filter(*cloud_filtered);
-    cloud_filtered->is_dense = false;
-
-    std::cout << "Filtered points: " << cloud_filtered->size() << std::endl;
-
-    std::stringstream ss;
-    ss << output_dir << "frame_" << std::setfill('0') << std::setw(5) << target_frame << ".pcd";
-    std::string out_path = ss.str();
-
-    if (cloud_filtered->points.size() > 0) {
-        pcl::io::savePCDFileBinary(out_path, *cloud_filtered);
-        std::cout << "Saved downsampled point cloud to " << out_path << std::endl;
-    } else {
-        std::cerr << "No points to save after downsampling!" << std::endl;
-        return;
-    }
 
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("PCD Viewer"));
-    viewer->setSize(800, 600); 
+    viewer->setSize(640, 360); 
+    viewer->getRenderWindow()->SetPosition(3100, 300); 
     viewer->addPointCloud<PointT>(cloud_filtered, "cloud");
     while (!viewer->wasStopped()) {
         viewer->spinOnce(100);

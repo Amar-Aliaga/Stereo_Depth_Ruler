@@ -11,3 +11,4 @@ void zed_footage();
 static void MouseCallbackWrapper(int event, int x, int y, int flags, void *user_data);
 void image_disparity_measure(const std::string &img_file);
 void specific_depth_pixel(const cv::Mat &mat);
+void count_frames();
