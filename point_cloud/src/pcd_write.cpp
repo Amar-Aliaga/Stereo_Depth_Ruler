@@ -1,3 +1,4 @@
+#include "pcd_write.hpp"
 #include "stereo_configuration.hpp"
 #include "stereo_disparity.hpp"
 
@@ -13,11 +14,8 @@
 #include <string>
 #include <iomanip> 
 
-typedef pcl::PointXYZRGB PointT;
-typedef pcl::PointCloud<PointT> PointCloudT;
 
-// Convert OpenCV 3D point cloud and color image to PCL PointCloud
-PointCloudT::Ptr convertCVMatToPCL(const cv::Mat& pointCloud_CV, const cv::Mat& colorImage_CV) {
+PointCloud::PointCloudT::Ptr PointCloud::convertCVMatToPCL(const cv::Mat& pointCloud_CV, const cv::Mat& colorImage_CV) {
     PointCloudT::Ptr cloud(new PointCloudT);
 
     if (pointCloud_CV.empty() || pointCloud_CV.type() != CV_32FC3) {
@@ -53,7 +51,7 @@ PointCloudT::Ptr convertCVMatToPCL(const cv::Mat& pointCloud_CV, const cv::Mat& 
     return cloud;
 }
 
-void save_and_display_pointcloud() {
+void PointCloud::save_and_display_pointcloud() {
     const std::string video_path1 = "/home/amar-aliaga/Downloads/cam.mp4";
     const std::string Q_matrix_path = "/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/config/stereo.yaml";
     const std::string output_dir = "/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/results/";
@@ -65,7 +63,6 @@ void save_and_display_pointcloud() {
         return;
     }
 
-    // Read the target frame
     cv::Mat frame;
     for (int i = 0; i <= target_frame; ++i) {
         cap >> frame;
@@ -75,23 +72,19 @@ void save_and_display_pointcloud() {
         }
     }
 
-    // Check that frame can be split
     if (frame.cols % 2 != 0) {
         std::cerr << "Frame width is not even; cannot split into left/right images." << std::endl;
         return;
     }
 
-    // Split the frame into left and right images
     int width = frame.cols / 2;
-    cv::Mat left = frame(cv::Rect(0, 0, width, frame.rows)).clone();
+    cv::Mat left  = frame(cv::Rect(0, 0, width, frame.rows)).clone();
     cv::Mat right = frame(cv::Rect(width, 0, width, frame.rows)).clone();
 
-    // Convert to grayscale
     cv::Mat left_gray, right_gray;
     cv::cvtColor(left, left_gray, cv::COLOR_BGR2GRAY);
     cv::cvtColor(right, right_gray, cv::COLOR_BGR2GRAY);
 
-    // Load Q matrix
     cv::FileStorage fs(Q_matrix_path, cv::FileStorage::READ);
     cv::Mat Q;
     fs["Q"] >> Q;
@@ -101,7 +94,6 @@ void save_and_display_pointcloud() {
         return;
     }
 
-    // Compute disparity using StereoSGBM
     cv::Ptr<cv::StereoSGBM> sgbm = cv::StereoSGBM::create(
         0, 80, 5,
         8 * 5 * 5 * 3,
@@ -118,11 +110,10 @@ void save_and_display_pointcloud() {
     cv::Mat pointCloud_CV;
     cv::reprojectImageTo3D(disp_float, pointCloud_CV, Q, true);
 
-    // Convert to PCL and colorize with left image
+
     PointCloudT::Ptr pcl_cloud = convertCVMatToPCL(pointCloud_CV, left);
     std::cout << "Original points: " << pcl_cloud->size() << std::endl;
 
-    // Downsample with VoxelGrid (5 mm)
     float voxel_size = 0.005f;
     pcl::VoxelGrid<PointT> voxel_filter;
     voxel_filter.setInputCloud(pcl_cloud);
@@ -134,12 +125,10 @@ void save_and_display_pointcloud() {
 
     std::cout << "Filtered points: " << cloud_filtered->size() << std::endl;
 
-    // Format output path
     std::stringstream ss;
     ss << output_dir << "frame_" << std::setfill('0') << std::setw(5) << target_frame << ".pcd";
     std::string out_path = ss.str();
 
-    // Save the downsampled point cloud
     if (cloud_filtered->points.size() > 0) {
         pcl::io::savePCDFileBinary(out_path, *cloud_filtered);
         std::cout << "Saved downsampled point cloud to " << out_path << std::endl;
@@ -148,9 +137,8 @@ void save_and_display_pointcloud() {
         return;
     }
 
-    // Display the point cloud
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("PCD Viewer"));
-    //viewer->setSize(800, 600); // Set window size to 800x600 pixels
+    viewer->setSize(800, 600); 
     viewer->addPointCloud<PointT>(cloud_filtered, "cloud");
     while (!viewer->wasStopped()) {
         viewer->spinOnce(100);

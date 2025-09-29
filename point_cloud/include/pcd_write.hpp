@@ -6,10 +6,13 @@
 #include <pcl/io/pcd_io.h> 
 #include <pcl/common/common.h> 
 
-typedef pcl::PointXYZRGB PointT;
-typedef pcl::PointCloud<PointT> PointCloudT;
 
-
-PointCloudT::Ptr convertCVMatToPCL(const cv::Mat& pointCloud_CV, const cv::Mat& colorImage_CV = cv::Mat());
-void save_and_display_pointcloud();
-//void view_pcd(const std::string& filename);
+class PointCloud {
+    private:
+        using PointT = pcl::PointXYZRGB;
+        using PointCloudT = pcl::PointCloud<PointT>;
+    public:
+        PointCloud() = default;
+        PointCloudT::Ptr convertCVMatToPCL(const cv::Mat& pointCloud_CV, const cv::Mat& colorImage_CV = cv::Mat());
+        void save_and_display_pointcloud();
+};
