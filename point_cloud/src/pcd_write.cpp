@@ -51,13 +51,40 @@ PointCloud::PointCloudT::Ptr PointCloud::convertCVMatToPCL(const cv::Mat& pointC
     return cloud;
 }
 
-void PointCloud::save_and_display_pointcloud() {
+
+void PointCloud::show_pointCloud(const cv::Mat &left, const cv::Mat &pointCloud_CV, const float voxel_size) {
+    if (left.empty() || left.cols % 2 != 0) {
+        std::cerr << "Invalid stereo image!" << std::endl;
+        return;
+    }
+
+    PointCloudT::Ptr pcl_cloud = convertCVMatToPCL(pointCloud_CV, left);
+
+    pcl::VoxelGrid<PointT> voxel_filter;
+    voxel_filter.setInputCloud(pcl_cloud);
+    voxel_filter.setLeafSize(voxel_size, voxel_size, voxel_size);
+
+    PointCloudT::Ptr cloud_filtered(new PointCloudT);
+    voxel_filter.filter(*cloud_filtered);
+
+    pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("PCD Viewer"));
+    viewer->setSize(640, 360); 
+    viewer->getRenderWindow()->SetPosition(3100, 300); 
+    viewer->addPointCloud<PointT>(cloud_filtered, "cloud");
+    while (!viewer->wasStopped()) {
+        viewer->spinOnce(100);
+    }
+}
+
+
+void PointCloud::show_live_pointCloud() {
     const std::string video_path1 = "/home/amar-aliaga/Downloads/cam.mp4";
+    const std::string video_path2 = "assets/output.mp4";
     const std::string Q_matrix_path = "/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/config/stereo.yaml";
     const std::string output_dir = "/home/amar-aliaga/Desktop/wayland/wayland_thirdProject/results/";
     const int target_frame = 100;
 
-    cv::VideoCapture cap(video_path1);
+    cv::VideoCapture cap(video_path2);
     if (!cap.isOpened()) {
         std::cerr << "Could not open video: " << video_path1 << std::endl;
         return;
@@ -140,6 +167,14 @@ void PointCloud::save_and_display_pointcloud() {
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("PCD Viewer"));
     viewer->setSize(800, 600); 
     viewer->addPointCloud<PointT>(cloud_filtered, "cloud");
+    viewer->registerKeyboardCallback([](const pcl::visualization::KeyboardEvent& event, void* viewer_void) {
+        auto viewer = static_cast<pcl::visualization::PCLVisualizer*>(viewer_void);
+            if (event.keyDown() && (event.getKeySym() == "q" || event.getKeySym() == "Escape")) {
+                viewer->close();
+            }
+        },
+        viewer.get()
+    );
     while (!viewer->wasStopped()) {
         viewer->spinOnce(100);
     }

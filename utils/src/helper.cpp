@@ -267,3 +267,27 @@ void specific_depth_pixel(const cv::Mat &mat) {
         }
     }
 }
+
+
+void count_frames() {
+    const std::string s{"assets/output.mp4"};
+    cv::VideoCapture cap(std::move(s));
+    if(!cap.isOpened()) {
+        std::cerr << "No video found" << std::endl;
+        return;
+    }
+    int counter {0};
+    while(true) {
+        cv::Mat frame;
+        cap >> frame;
+        if(frame.empty()) {
+            std::cerr << "End of video" << std::endl;
+            break;
+        } else {
+            counter++;
+            std::cout << counter << std::endl;
+            cv::imshow("Video: ", frame);
+            if(cv::waitKey(1) == 27) break;
+        }
+    }
+}
