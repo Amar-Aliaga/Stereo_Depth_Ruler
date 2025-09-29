@@ -83,9 +83,6 @@ bool StereoRectifier::process() {
         cv::Mat left_image  = frame(cv::Rect(0, 0, frame.cols/2, frame.rows));
         cv::Mat right_image = frame(cv::Rect(frame.cols/2, 0, frame.cols/2, frame.rows));
 
-        cv::resize(left_image,  left_image,  cv::Size(), 0.5, 0.5, cv::INTER_AREA);
-        cv::resize(right_image, right_image, cv::Size(), 0.5, 0.5, cv::INTER_AREA);
-
         std::cout << "left image: " << left_image.size() << std::endl;
         std::cout << "Right image: " << right_image.size() << std::endl;
 
