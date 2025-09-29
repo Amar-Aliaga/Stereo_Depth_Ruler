@@ -39,8 +39,8 @@ int main() {
     // std::unique_ptr<StereoPipeline> sd = std::make_unique<StereoDisplayer>();;
     // sd->process();
     //sd.image_depth("/home/amar-aliaga/stereo_image2.png");
-
-    save_and_display_pointcloud();
+    PointCloud pcl;
+    pcl.save_and_display_pointcloud();
 
     return EXIT_SUCCESS;
 }
