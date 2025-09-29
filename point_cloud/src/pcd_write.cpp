@@ -167,6 +167,14 @@ void PointCloud::show_live_pointCloud() {
     pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer("PCD Viewer"));
     viewer->setSize(800, 600); 
     viewer->addPointCloud<PointT>(cloud_filtered, "cloud");
+    viewer->registerKeyboardCallback([](const pcl::visualization::KeyboardEvent& event, void* viewer_void) {
+        auto viewer = static_cast<pcl::visualization::PCLVisualizer*>(viewer_void);
+            if (event.keyDown() && (event.getKeySym() == "q" || event.getKeySym() == "Escape")) {
+                viewer->close();
+            }
+        },
+        viewer.get()
+    );
     while (!viewer->wasStopped()) {
         viewer->spinOnce(100);
     }
