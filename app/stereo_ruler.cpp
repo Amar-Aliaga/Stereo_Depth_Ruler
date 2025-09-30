@@ -23,14 +23,14 @@ int main() {
     std::vector<std::unique_ptr<StereoPipeline>> pipelines;
     auto &config = StereoConfiguration::getConfig();
 
-    pipelines.push_back(std::make_unique<StereoCalibrator>());
-    pipelines.push_back(std::make_unique<StereoRectifier>(config));
-    pipelines.push_back(std::make_unique<StereoDisparity>(config.Q));
-    pipelines.push_back(std::make_unique<StereoDisplayer>());
+    // pipelines.push_back(std::make_unique<StereoCalibrator>());
+    // pipelines.push_back(std::make_unique<StereoRectifier>(config));
+    // pipelines.push_back(std::make_unique<StereoDisparity>(config.Q));
+    // pipelines.push_back(std::make_unique<StereoDisplayer>());
 
-    for (auto& pipeline : pipelines) {
-        pipeline->process();
-    }
+    // for (auto& pipeline : pipelines) {
+    //     pipeline->process();
+    // }
 
     // std::unique_ptr<StereoPipeline> pipeline = std::make_unique<StereoCalibrator>();
     // pipeline->process();
@@ -40,11 +40,11 @@ int main() {
     // std::unique_ptr<StereoPipeline> pipeline1 = std::make_unique<StereoRectifier>(config);
     // pipeline1->process();
 
-    // std::unique_ptr<StereoPipeline> pipeline2 = std::make_unique<StereoDisparity>(config.Q);
-    // if(!pipeline2->process()) {
-    //     std::cerr << "Null" << std::endl;
-    //     return -1;
-    // }
+    std::unique_ptr<StereoPipeline> pipeline2 = std::make_unique<StereoDisparity>(config.Q);
+    if(!pipeline2->process()) {
+        std::cerr << "Null" << std::endl;
+        return -1;
+    }
 
 
     //zed_footage();
