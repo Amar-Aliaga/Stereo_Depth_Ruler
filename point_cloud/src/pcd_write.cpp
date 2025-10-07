@@ -133,7 +133,6 @@ void PointCloud::show_live_pointCloud() {
     sgbm->compute(left_gray, right_gray, disp);
     disp.convertTo(disp_float, CV_32F, 1.0 / 16.0);
 
-    // Reproject to 3D
     cv::Mat pointCloud_CV;
     cv::reprojectImageTo3D(disp_float, pointCloud_CV, Q, true);
 
