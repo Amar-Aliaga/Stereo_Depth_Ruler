@@ -177,13 +177,8 @@ bool StereoDisplayer::process() {
 
 
         cv::imshow("Left Rectified", left_rect);
-        cv::moveWindow("Left Rectified", 2200, 300);
-
-        // cv::imshow("Depth Map", display_depth);
-        // cv::moveWindow("Depth Map", 3100, 300);
-
-        cv::imshow("Left: rectified image + disparity overlay", overlay);
-        cv::moveWindow("Left: rectified image + disparity overlay", 2200, 400 + left_rect.rows);
+        cv::imshow("Depth Map", display_depth);
+        cv::imshow("Disparity Map", display_disparity);
 
         depth_coverage(depth_map);
 
@@ -194,7 +189,7 @@ bool StereoDisplayer::process() {
             case 102:
                 frozen = overlay.clone();
                 cv::imshow("Paused Image", frozen);
-                cv::moveWindow("Paused Image", 3100, 400 + left_rect.rows);
+                //cv::moveWindow("Paused Image", 3400, 400 + left_rect.rows);
                 measure_points(depth_map);
                 pcl.show_pointCloud(left_rect, depth_map, voxel_size);
                 break;

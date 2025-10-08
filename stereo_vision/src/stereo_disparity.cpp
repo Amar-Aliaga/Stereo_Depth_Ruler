@@ -182,13 +182,9 @@ bool StereoDisparity::process() {
 
 
         cv::imshow("Left Rectified", left_rect);
-        cv::moveWindow("Left Rectified", 2700, 300);
-
         cv::imshow("Depth Map", display_depth);
-        cv::moveWindow("Depth Map", 3600, 300);
-
-        cv::imshow("Left: rectified image + disparity overlay", overlay);
-        cv::moveWindow("Left: rectified image + disparity overlay", 2700, 400 + left_rect.rows);
+        cv::imshow("Disparity Map", display_disparity);
+        //cv::imshow("Left: rectified image + disparity overlay", overlay);
 
         if(cv::waitKey(1) == 27) break;
     }
