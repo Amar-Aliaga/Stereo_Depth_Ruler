@@ -187,7 +187,7 @@ bool StereoDisplayer::process() {
             case 27:
                 return false;
             case 102:
-                frozen = overlay.clone();
+                frozen = left_rect.clone();
                 cv::imshow("Paused Image", frozen);
                 //cv::moveWindow("Paused Image", 3400, 400 + left_rect.rows);
                 measure_points(depth_map);
