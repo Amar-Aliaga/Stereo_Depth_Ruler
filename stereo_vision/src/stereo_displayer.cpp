@@ -17,6 +17,7 @@
 #include <cmath>
 #include <memory>
 #include <fstream>
+#include <future>
 
 
 //StereoDisplayer::StereoDisplayer(StereoConfiguration &config) : config(config) {}
@@ -189,9 +190,17 @@ bool StereoDisplayer::process() {
             case 102:
                 frozen = left_rect.clone();
                 cv::imshow("Paused Image", frozen);
-                //cv::moveWindow("Paused Image", 3400, 400 + left_rect.rows);
+
+                auto future = std::async(std::launch::async, &PointCloud::show_pointCloud, &pcl, left_rect, depth_map, voxel_size);
+
+                //std::thread pcl_thread(&PointCloud::show_pointCloud, &pcl, left_rect, depth_map, voxel_size);
+
                 measure_points(depth_map);
-                pcl.show_pointCloud(left_rect, depth_map, voxel_size);
+
+                future.get();
+
+                //pcl_thread.join();
+                //pcl.show_pointCloud(left_rect, depth_map, voxel_size);
                 break;
         }
     }
