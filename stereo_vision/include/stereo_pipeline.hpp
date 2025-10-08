@@ -9,10 +9,11 @@
 #include <memory>
 
 class StereoPipeline {
-    public:
+    protected:
         const std::string outputFile {"config/stereo.yaml"};
         cv::Mat depth_map, overlay, frozen;
 
+    public:
         virtual bool process() = 0;
         //virtual void display() = 0;
         virtual ~StereoPipeline() = default;
