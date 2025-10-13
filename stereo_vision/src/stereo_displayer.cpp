@@ -188,20 +188,22 @@ bool StereoDisplayer::process() {
             case 27:
                 return false;
             case 102:
-                frozen = left_rect.clone();
+                cv::Mat left_rect_copy  = left_rect.clone();
+                cv::Mat depth_map_copy  = depth_map.clone();
+                frozen = left_rect_copy.clone();
                 cv::imshow("Paused Image", frozen);
 
-                auto future = std::async(std::launch::async, &PointCloud::show_pointCloud, &pcl, left_rect, depth_map, voxel_size);
+                auto future = std::async(std::launch::async, &PointCloud::show_pointCloud, 
+                    &pcl, left_rect_copy, depth_map_copy, voxel_size);
+ 
+                measure_points(depth_map_copy);
 
-                //std::thread pcl_thread(&PointCloud::show_pointCloud, &pcl, left_rect, depth_map, voxel_size);
-
-                measure_points(depth_map);
-
-                future.get();
-
-                //pcl_thread.join();
-                //pcl.show_pointCloud(left_rect, depth_map, voxel_size);
-                break;
+                try {
+                    future.get();  
+                } catch (const std::exception& e) {
+                    std::cerr << "Point cloud processing error: " << e.what() << std::endl;
+                }
+            break;
         }
     }
     return true;
