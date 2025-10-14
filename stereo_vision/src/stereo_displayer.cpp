@@ -17,6 +17,7 @@
 #include <cmath>
 #include <memory>
 #include <fstream>
+#include <future>
 
 
 //StereoDisplayer::StereoDisplayer(StereoConfiguration &config) : config(config) {}
@@ -177,13 +178,8 @@ bool StereoDisplayer::process() {
 
 
         cv::imshow("Left Rectified", left_rect);
-        cv::moveWindow("Left Rectified", 2200, 300);
-
-        // cv::imshow("Depth Map", display_depth);
-        // cv::moveWindow("Depth Map", 3100, 300);
-
-        cv::imshow("Left: rectified image + disparity overlay", overlay);
-        cv::moveWindow("Left: rectified image + disparity overlay", 2200, 400 + left_rect.rows);
+        cv::imshow("Depth Map", display_depth);
+        cv::imshow("Disparity Map", display_disparity);
 
         depth_coverage(depth_map);
 
@@ -192,12 +188,22 @@ bool StereoDisplayer::process() {
             case 27:
                 return false;
             case 102:
-                frozen = overlay.clone();
+                cv::Mat left_rect_copy  = left_rect.clone();
+                cv::Mat depth_map_copy  = depth_map.clone();
+                frozen = left_rect_copy.clone();
                 cv::imshow("Paused Image", frozen);
-                cv::moveWindow("Paused Image", 3100, 400 + left_rect.rows);
-                measure_points(depth_map);
-                pcl.show_pointCloud(left_rect, depth_map, voxel_size);
-                break;
+
+                auto future = std::async(std::launch::async, &PointCloud::show_pointCloud, 
+                    &pcl, left_rect_copy, depth_map_copy, voxel_size);
+ 
+                measure_points(depth_map_copy);
+
+                try {
+                    future.get();  
+                } catch (const std::exception& e) {
+                    std::cerr << "Point cloud processing error: " << e.what() << std::endl;
+                }
+            break;
         }
     }
     return true;

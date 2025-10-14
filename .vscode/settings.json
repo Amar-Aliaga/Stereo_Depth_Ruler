@@ -84,6 +84,8 @@
         "shared_mutex": "cpp",
         "stdfloat": "cpp",
         "__locale": "cpp",
-        "strstream": "cpp"
+        "strstream": "cpp",
+        "any": "cpp",
+        "ranges": "cpp"
     }
 }
