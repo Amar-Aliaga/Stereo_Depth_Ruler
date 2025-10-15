@@ -132,7 +132,7 @@ void capture_frame(const std::string &output_file) {
 
 
 void image_desparity(const std::string &img_file) {
-    StereoConfiguration config;
+    StereoConfiguration& config = StereoConfiguration::getConfig();
     
     if (!config.loadFromFile("config/stereo.yaml")) {
         return;

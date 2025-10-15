@@ -10,6 +10,8 @@
 StereoCalibrator::StereoCalibrator() = default;
 
 bool StereoCalibrator::calibrate(const std::string &outputFile) {
+    StereoConfiguration& config = StereoConfiguration::getConfig();
+
     std::vector<std::vector<cv::Point2f>> imagePointsLeft, imagePointsRight;
     std::vector<std::vector<cv::Point3f>> objectPoints;
     
@@ -128,6 +130,7 @@ bool StereoCalibrator::calibrate(const std::string &outputFile) {
 
 
 void StereoCalibrator::saveCalibration(const std::string &filename) {
+    StereoConfiguration& config = StereoConfiguration::getConfig();
     cv::FileStorage fs(filename, cv::FileStorage::WRITE);
         
     if (fs.isOpened()) {
@@ -156,6 +159,7 @@ void StereoCalibrator::saveCalibration(const std::string &filename) {
 
 
 void StereoCalibrator::printCalibrationResults() {
+    StereoConfiguration& config = StereoConfiguration::getConfig();
     std::cout << "\n=== CALIBRATION RESULTS ===" << std::endl;
     std::cout << "Left Camera Matrix:\n" << config.cameraMatrixLeft << std::endl;
     std::cout << "Left Distortion Coefficients:\n" << config.distCoeffsLeft << std::endl;
@@ -192,4 +196,4 @@ const int   StereoCalibrator::getBoardSize_Width()    const noexcept { return bo
 const int   StereoCalibrator::getBoardSize_Height()   const noexcept { return boardSize.height;  }
 const float StereoCalibrator::getSquareSize()         const noexcept { return squareSize;        }
 
-const StereoConfiguration StereoCalibrator::get_config() const noexcept { return config; }
+//const StereoConfiguration StereoCalibrator::get_config() const noexcept { return config; }

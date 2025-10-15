@@ -128,7 +128,7 @@ bool StereoDisparity::process() {
     const std::string &s {"assets/output.mp4"};
     const std::string &v {"assets/cam.mp4"};
 
-    StereoConfiguration config;
+    StereoConfiguration& config = StereoConfiguration::getConfig();
     if(!config.loadFromFile(outputFile)) {
         std::cerr << "Failed to load config" << std::endl;
         return false;

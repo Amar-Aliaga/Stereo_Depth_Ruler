@@ -27,7 +27,6 @@ struct MouseMat {
 
 class StereoDisplayer : public StereoPipeline {
     private:
-        StereoConfiguration config;
 
         std::vector<cv::Point> clicked_points {};
         std::vector<std::pair<cv::Point, cv::Point>> points_history {};

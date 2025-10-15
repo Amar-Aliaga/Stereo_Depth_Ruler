@@ -121,6 +121,7 @@ void StereoDisplayer::depth_coverage(const cv::Mat &mat) {
 
 
 bool StereoDisplayer::process() {
+    StereoConfiguration& config = StereoConfiguration::getConfig();
     const std::string &s {"assets/output.mp4"};
     const std::string &v {"/home/amar-aliaga/Downloads/cam.mp4"};
     float voxel_size = PointCloud::get_voxel();
@@ -262,6 +263,7 @@ void StereoDisplayer::measure_points(const cv::Mat &depth_map) {
 
 
 void StereoDisplayer::image_depth(const std::string &path) {
+    StereoConfiguration& config = StereoConfiguration::getConfig();
     
     cv::Mat frame = cv::imread(path, cv::IMREAD_COLOR);
     if (!config.loadFromFile(outputFile)) {

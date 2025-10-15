@@ -12,8 +12,7 @@ private:
     static constexpr float squareSize {19.0f};
     static constexpr const char *left_frames_dir  {"/home/amar-aliaga/Desktop/left_frames/" };
     static constexpr const char *right_frames_dir {"/home/amar-aliaga/Desktop/right_frames/"};
-    
-    StereoConfiguration config;
+
 
 public:
     StereoCalibrator();
@@ -25,5 +24,5 @@ public:
     const int getBoardSize_Width()    const noexcept;
     const int getBoardSize_Height()   const noexcept;
     const float getSquareSize()       const noexcept;
-    const StereoConfiguration get_config() const noexcept;
+    //const StereoConfiguration get_config() const noexcept;
 };
