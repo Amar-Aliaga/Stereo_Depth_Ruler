@@ -18,6 +18,7 @@
 #include <memory>
 #include <fstream>
 #include <future>
+#include <algorithm>
 
 
 //StereoDisplayer::StereoDisplayer(StereoConfiguration &config) : config(config) {}
@@ -51,7 +52,7 @@ void StereoDisplayer::onMouseMeasure(int event, int x, int y, int flags, void *u
         points_history.push_back(std::make_pair(clicked_points[0], clicked_points[1]));
         dist_vector.push_back(dist);
 
-        measurement_record.push_back({current_image_index, clicked_points[0], clicked_points[1], dist});
+        measurement_record.emplace_back(current_image_index, clicked_points[0], clicked_points[1], dist);
 
         std::cout << "Image: "    << current_image_index << std::endl;
         std::cout << "Point 1: "  << clicked_points[0]   << std::endl;
@@ -124,7 +125,7 @@ bool StereoDisplayer::process() {
     StereoConfiguration& config = StereoConfiguration::getConfig();
     const std::string &s {"assets/output.mp4"};
     const std::string &v {"/home/amar-aliaga/Downloads/cam.mp4"};
-    float voxel_size = PointCloud::get_voxel();
+    float voxel_size = PointCloud::getVoxel();
 
     if (!config.loadFromFile(outputFile)) {
         std::cerr << "Error: Could not load configuration file." << std::endl;
@@ -134,7 +135,7 @@ bool StereoDisplayer::process() {
     StereoDisparity disparity_computer(config.Q);
     PointCloud pcl;
 
-    cv::VideoCapture cap(std::move(s));
+    cv::VideoCapture cap(s);
     if (!cap.isOpened()) {
         std::cerr << "Error: Could not open video file." << std::endl;
         return false;
@@ -147,29 +148,25 @@ bool StereoDisplayer::process() {
     int h = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
     std::cout << "Res: " << w << "x" << h << std::endl;
 
+    cv::Mat frame;
     while (true) {
-        cv::Mat frame;
-
         cap >> frame;
         if (frame.empty()) {
             std::cout << "End of video." << std::endl;
             break;
         }
 
+        left_raw = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
+        right_raw = frame(cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows));
 
-        cv::Mat left_raw = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
-        cv::Mat right_raw = frame(cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows));
-
-        cv::Mat left_rect, right_rect;
         rectifier.rectify(left_raw, right_raw, left_rect, right_rect);
 
-        cv::Mat disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
+        disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
         depth_map = disparity_computer.computeDepth(disp_float);
 
-        cv::Mat display_depth = disparity_computer.show_depthMap(depth_map);
-        cv::Mat display_disparity = disparity_computer.show_disparityMap(disp_float);
+        display_depth = disparity_computer.show_depthMap(depth_map);
+        display_disparity = disparity_computer.show_disparityMap(disp_float);
 
-        cv::Mat disparity_heatmap;
         cv::applyColorMap(display_disparity, disparity_heatmap, cv::COLORMAP_JET);
 
         cv::resize(disparity_heatmap, disparity_heatmap, display_depth.size());
@@ -182,7 +179,7 @@ bool StereoDisplayer::process() {
         cv::imshow("Depth Map", display_depth);
         cv::imshow("Disparity Map", display_disparity);
 
-        depth_coverage(depth_map);
+        //depth_coverage(depth_map);
 
         int key = cv::waitKey(1);
         switch(key) {
@@ -196,10 +193,9 @@ bool StereoDisplayer::process() {
 
                 auto future = std::async(std::launch::async, &PointCloud::show_pointCloud, 
                     &pcl, left_rect_copy, depth_map_copy, voxel_size);
- 
-                measure_points(depth_map_copy);
-
+   
                 try {
+                    measure_points(depth_map_copy); 
                     future.get();  
                 } catch (const std::exception& e) {
                     std::cerr << "Point cloud processing error: " << e.what() << std::endl;
@@ -273,19 +269,17 @@ void StereoDisplayer::image_depth(const std::string &path) {
     StereoRectifier rectifier(config);
     StereoDisparity disparity_computer(config.Q);
 
-    cv::Mat left_raw = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
-    cv::Mat right_raw = frame(cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows));
+    left_raw = frame(cv::Rect(0, 0, frame.cols / 2, frame.rows));
+    right_raw = frame(cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows));
 
-    cv::Mat left_rect, right_rect;
     rectifier.rectify(left_raw, right_raw, left_rect, right_rect);
 
-    cv::Mat disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
+    disp_float = disparity_computer.computeDisparity(left_rect, right_rect);
     depth_map = disparity_computer.computeDepth(disp_float);
 
-    cv::Mat display_depth = disparity_computer.show_depthMap(depth_map);
-    cv::Mat display_disparity = disparity_computer.show_disparityMap(disp_float);
+    display_depth = disparity_computer.show_depthMap(depth_map);
+    display_disparity = disparity_computer.show_disparityMap(disp_float);
 
-    cv::Mat disparity_heatmap;
     cv::applyColorMap(display_disparity, disparity_heatmap, cv::COLORMAP_JET);
 
     cv::resize(disparity_heatmap, disparity_heatmap, display_depth.size());

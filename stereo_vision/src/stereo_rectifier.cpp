@@ -72,12 +72,13 @@ bool StereoRectifier::process() {
     double height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
     std::cout << "Actual resolution: " << width << "x" << height << std::endl;
 
+    cv::Mat frame;
     while(true) {
-        cv::Mat frame;
         cap >> frame;
 
         if(frame.empty()) {
            std::cout << "No frame has been found." << std::endl; 
+           break;
         }
 
         cv::Mat left_image  = frame(cv::Rect(0, 0, frame.cols/2, frame.rows));

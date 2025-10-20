@@ -6,15 +6,15 @@
 #include <string>
 
 class StereoRectifier : public StereoPipeline{
-private:
-    const StereoConfiguration &config;
+    private:
+        const StereoConfiguration &config;
 
-    cv::Mat mapL1, mapL2;
-    cv::Mat mapR1, mapR2;
+        cv::Mat mapL1, mapL2;
+        cv::Mat mapR1, mapR2;
 
-public:
-    explicit StereoRectifier(const StereoConfiguration &config);
-    void rectify(const cv::Mat &left_src, const cv::Mat &right_src, cv::Mat &left_dst, cv::Mat &right_dst);
-    void drawEpipolarLines(cv::Mat &rectifiedLeft, cv::Mat &rectifiedRight);
-    bool process() override;
+    public:
+        explicit StereoRectifier(const StereoConfiguration &config);
+        void rectify(const cv::Mat &left_src, const cv::Mat &right_src, cv::Mat &left_dst, cv::Mat &right_dst);
+        void drawEpipolarLines(cv::Mat &rectifiedLeft, cv::Mat &rectifiedRight);
+        bool process() override;
 };

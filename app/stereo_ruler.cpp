@@ -32,28 +32,8 @@ int main() {
     //     pipeline->process();
     // }
 
-    // std::unique_ptr<StereoPipeline> pipeline = std::make_unique<StereoCalibrator>();
-    // pipeline->process();
-
-
-
-    // std::unique_ptr<StereoPipeline> pipeline1 = std::make_unique<StereoRectifier>(config);
-    // pipeline1->process();
-
-    // std::unique_ptr<StereoPipeline> pipeline2 = std::make_unique<StereoDisparity>(config.Q);
-    // if(!pipeline2->process()) {
-    //     std::cerr << "Null" << std::endl;
-    //     return -1;
-    // }
-
-
     std::unique_ptr<StereoPipeline> sd = std::make_unique<StereoDisplayer>();
     sd->process();
-
-    //sd.image_depth("/home/amar-aliaga/stereo_image2.png");
-
-    // PointCloud pcl;
-    // pcl.show_live_pointCloud();
 
     return EXIT_SUCCESS;
 }

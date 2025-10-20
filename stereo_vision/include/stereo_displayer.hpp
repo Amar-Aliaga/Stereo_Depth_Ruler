@@ -16,6 +16,9 @@ struct MeasurementRecord {
     cv::Point point1  {};
     cv::Point point2  {};
     float distance    {};
+
+    MeasurementRecord(short idx, cv::Point p1, cv::Point p2, float dist)
+        : image_index(idx), point1(p1), point2(p2), distance(dist) {}
 };
 
 
@@ -27,6 +30,10 @@ struct MouseMat {
 
 class StereoDisplayer : public StereoPipeline {
     private:
+
+        cv::Mat left_raw, right_raw;
+        cv::Mat left_rect, right_rect;
+        cv::Mat disp_float, display_depth, display_disparity, disparity_heatmap;
 
         std::vector<cv::Point> clicked_points {};
         std::vector<std::pair<cv::Point, cv::Point>> points_history {};
@@ -40,7 +47,9 @@ class StereoDisplayer : public StereoPipeline {
 
     public:
         //StereoDisplayer(StereoConfiguration &config);
-        StereoDisplayer() = default;
+        StereoDisplayer() {
+            measurement_record.reserve(4);
+        };
 
         void onMouseMeasure(int event, int x, int y, int flags, void *user_data);
         static void MouseCallbackWrapper(int event, int x, int y, int flags, void *user_data);

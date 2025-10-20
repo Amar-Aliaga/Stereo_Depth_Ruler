@@ -14,23 +14,18 @@ StereoDisparity::StereoDisparity(const cv::Mat &Q_matrix) : Q(Q_matrix) {
 }
 
 
-cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& right) {
-    cv::Mat leftGray, rightGray;
+const cv::Mat &StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& right) {
     cv::cvtColor(left,  leftGray,  cv::COLOR_BGR2GRAY);
     cv::cvtColor(right, rightGray, cv::COLOR_BGR2GRAY);
 
-    cv::Mat left_small, right_small;
     cv::resize(leftGray,  left_small,  cv::Size(), 0.5, 0.5, cv::INTER_AREA);
     cv::resize(rightGray, right_small, cv::Size(), 0.5, 0.5, cv::INTER_AREA);
 
-    cv::Mat disp_left, disp_right;
     matcher->compute(left_small, right_small, disp_left);
     right_matcher->compute(right_small, left_small, disp_right);
 
-    cv::Mat filtered_disp;
     wls_filter->filter(disp_left, left_small, filtered_disp, disp_right);
 
-    cv::Mat filtered_disp_float;
     filtered_disp.convertTo(filtered_disp_float, CV_32F, 1.0 / 16.0);
 
     confidence_map = wls_filter->getConfidenceMap();
@@ -39,49 +34,41 @@ cv::Mat StereoDisparity::computeDisparity(const cv::Mat& left, const cv::Mat& ri
 }     
 
 
-cv::Mat StereoDisparity::show_disparityMap(const cv::Mat &disparity) {
+const cv::Mat &StereoDisparity::show_disparityMap(const cv::Mat &disparity) {
     const int numDisp = matcher->getNumDisparities();
-    cv::Mat valid_mask = disparity > 0;
-    cv::Mat filtered_disp_float_masked = disparity.clone();
+    valid_mask = disparity > 0;
+    disparity.copyTo(filtered_disp_float_masked, valid_mask);
     filtered_disp_float_masked.setTo(0, ~valid_mask);
 
-
-    cv::Mat norm01;
     filtered_disp_float_masked.convertTo(norm01, CV_32F, 1.0f / std::max(1, numDisp));
 
     const bool apply_gamma = true;
     const double gamma = 0.6; 
-    cv::Mat norm_gamma;
     if (apply_gamma) {
         cv::pow(norm01, gamma, norm_gamma);
     } else {
         norm_gamma = norm01;
     }
 
-    cv::Mat show_disp;
     norm_gamma.convertTo(show_disp, CV_8U, 255.0);
-
-    cv::Mat working_disp = disparity.clone();
     
     if (!prev_vis.empty() && prev_vis.size() == show_disp.size()) {
         const float alpha = 0.63f; 
         cv::addWeighted(prev_vis, alpha, show_disp, 1 - alpha, 0, show_disp);
     }
-    prev_vis = show_disp.clone();
+    show_disp.copyTo(prev_vis);
     
     return prev_vis;
 }
 
 
-cv::Mat StereoDisparity::computeDepth(const cv::Mat& disparity) {
-    cv::Mat depth;
+const cv::Mat &StereoDisparity::computeDepth(const cv::Mat& disparity) {
     cv::reprojectImageTo3D(disparity, depth, Q);
     return depth;
 }
 
 
-cv::Mat StereoDisparity::show_depthMap(const cv::Mat &disparity) {
-    cv::Mat depthZ;
+const cv::Mat &StereoDisparity::show_depthMap(const cv::Mat &disparity) {
     if (disparity.channels() == 3) {
         cv::extractChannel(disparity, depthZ, 2);  
     } else {
@@ -118,7 +105,7 @@ cv::Mat StereoDisparity::show_depthMap(const cv::Mat &disparity) {
         cv::addWeighted(prev_depth_vis, vis_alpha, depth_vis8u, 1.0f - vis_alpha, 0, depth_vis8u);
     }
     
-    prev_depth_vis = depth_vis8u.clone();
+    depth_vis8u.copyTo(prev_depth_vis);
 
     return prev_depth_vis;
 }
@@ -150,9 +137,8 @@ bool StereoDisparity::process() {
     int h = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
     std::cout << "Res: " << w << "x" << h << std::endl;
 
+    cv::Mat frame;
      while (true) {
-        cv::Mat frame;
-
         cap >> frame;
         if (frame.empty()) {
             std::cout << "End of video." << std::endl;
@@ -197,6 +183,6 @@ const cv::Ptr<cv::StereoSGBM> StereoDisparity::get_matcher() const {
 }
 
 
-const cv::Mat StereoDisparity::get_ConfidenceMap() const {
+const cv::Mat StereoDisparity::get_ConfidenceMap() const noexcept {
     return confidence_map;
 }

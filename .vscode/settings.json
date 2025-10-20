@@ -86,6 +86,7 @@
         "__locale": "cpp",
         "strstream": "cpp",
         "any": "cpp",
-        "ranges": "cpp"
+        "ranges": "cpp",
+        "future": "cpp"
     }
 }

@@ -29,11 +29,11 @@ bool StereoCalibrator::calibrate(const std::string &outputFile) {
                         cv::CALIB_CB_FAST_CHECK;
 
     for(const auto& entry : std::filesystem::directory_iterator(left_frames_dir)) {
-        left_files.push_back(entry.path().string());
+        left_files.emplace_back(entry.path().string());
     }
 
     for(const auto& entry : std::filesystem::directory_iterator(right_frames_dir)) {
-        right_files.push_back(entry.path().string());
+        right_files.emplace_back(entry.path().string());
     }
 
     std::sort( left_files.begin(),  left_files.end());
@@ -174,7 +174,7 @@ void StereoCalibrator::printCalibrationResults() {
 
 bool StereoCalibrator::process() {
     std::cout << "Starting stereo calibration..." << std::endl;
-    std::cout << "Pattern: " << getBoardSize_Width() << "x" << getBoardSize_Height() << " inner corners" << std::endl;
+    std::cout << "Pattern: " << getBoardWidth() << "x" << getBoardHeight() << " inner corners" << std::endl;
     std::cout << "Square size: " << getSquareSize() << " mm" << std::endl;
 
     if (calibrate(outputFile)) {
@@ -192,8 +192,8 @@ bool StereoCalibrator::process() {
 }
 
 
-const int   StereoCalibrator::getBoardSize_Width()    const noexcept { return boardSize.width;   }
-const int   StereoCalibrator::getBoardSize_Height()   const noexcept { return boardSize.height;  }
-const float StereoCalibrator::getSquareSize()         const noexcept { return squareSize;        }
+const int   StereoCalibrator::getBoardWidth()    const noexcept { return boardSize.width;   }
+const int   StereoCalibrator::getBoardHeight()   const noexcept { return boardSize.height;  }
+const float StereoCalibrator::getSquareSize()    const noexcept { return squareSize;        }
 
 //const StereoConfiguration StereoCalibrator::get_config() const noexcept { return config; }

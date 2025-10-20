@@ -11,6 +11,7 @@ class PointCloud {
     private:
         using PointT = pcl::PointXYZRGB;
         using PointCloudT = pcl::PointCloud<PointT>;
+
         static constexpr float voxel_size {0.005f};
     public:
         PointCloud() = default;
@@ -20,5 +21,5 @@ class PointCloud {
         void show_pointCloud(const cv::Mat& left, const cv::Mat &pointCloud_CV, const float voxel_size);
         void show_live_pointCloud();
 
-        static constexpr float get_voxel() { return voxel_size; };
+        static constexpr float getVoxel() noexcept { return voxel_size; };
 };
